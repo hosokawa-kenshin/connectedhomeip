@@ -65,6 +65,7 @@ ClustersWithInitFunctions:
     - Mode Select
     - Sample MEI
     - Scenes Management
+    - Location Detector
 
 ClustersWithAttributeChangedFunctions:
     - Bridged Device Basic
@@ -74,6 +75,7 @@ ClustersWithAttributeChangedFunctions:
     - Window Covering
     - Fan Control
     - Thermostat
+    - Location Detector
 
 ClustersWithShutdownFunctions:
     - Barrier Control

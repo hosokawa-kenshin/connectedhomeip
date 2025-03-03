@@ -1,6 +1,6 @@
 {
   "fileFormat": 2,
-  "featureLevel": 103,
+  "featureLevel": 106,
   "creator": "zap",
   "keyValuePairs": [
     {
@@ -41,14 +41,16 @@
         "code": 22,
         "profileId": 259,
         "label": "MA-rootdevice",
-        "name": "MA-rootdevice"
+        "name": "MA-rootdevice",
+        "deviceTypeOrder": 0
       },
       "deviceTypes": [
         {
           "code": 22,
           "profileId": 259,
           "label": "MA-rootdevice",
-          "name": "MA-rootdevice"
+          "name": "MA-rootdevice",
+          "deviceTypeOrder": 0
         }
       ],
       "deviceVersions": [
@@ -2954,6 +2956,14 @@
               "isEnabled": 1
             }
           ]
+        },
+        {
+          "name": "Location Detector",
+          "code": 4294048769,
+          "mfgCode": null,
+          "define": "LOCATION_DETECTOR_CLUSTER",
+          "side": "client",
+          "enabled": 1
         },
         {
           "name": "Unit Testing",
