@@ -267,6 +267,8 @@ char const * ClusterIdToText(chip::ClusterId id)
         return "EcosystemInformation";
     case chip::app::Clusters::CommissionerControl::Id:
         return "CommissionerControl";
+    case chip::app::Clusters::LocationDetector::Id:
+        return "LocationDetector";
     case chip::app::Clusters::UnitTesting::Id:
         return "UnitTesting";
     case chip::app::Clusters::FaultInjection::Id:
@@ -4466,6 +4468,33 @@ char const * AttributeIdToText(chip::ClusterId cluster, chip::AttributeId id)
         case chip::app::Clusters::CommissionerControl::Attributes::FeatureMap::Id:
             return "FeatureMap";
         case chip::app::Clusters::CommissionerControl::Attributes::ClusterRevision::Id:
+            return "ClusterRevision";
+        default:
+            return "Unknown";
+        }
+    }
+    case chip::app::Clusters::LocationDetector::Id: {
+        switch (id)
+        {
+        case chip::app::Clusters::LocationDetector::Attributes::BeaconUUID::Id:
+            return "BeaconUUID";
+        case chip::app::Clusters::LocationDetector::Attributes::Distance::Id:
+            return "Distance";
+        case chip::app::Clusters::LocationDetector::Attributes::MediatorUID::Id:
+            return "MediatorUID";
+        case chip::app::Clusters::LocationDetector::Attributes::LogEntry::Id:
+            return "LogEntry";
+        case chip::app::Clusters::LocationDetector::Attributes::GeneratedCommandList::Id:
+            return "GeneratedCommandList";
+        case chip::app::Clusters::LocationDetector::Attributes::AcceptedCommandList::Id:
+            return "AcceptedCommandList";
+        case chip::app::Clusters::LocationDetector::Attributes::EventList::Id:
+            return "EventList";
+        case chip::app::Clusters::LocationDetector::Attributes::AttributeList::Id:
+            return "AttributeList";
+        case chip::app::Clusters::LocationDetector::Attributes::FeatureMap::Id:
+            return "FeatureMap";
+        case chip::app::Clusters::LocationDetector::Attributes::ClusterRevision::Id:
             return "ClusterRevision";
         default:
             return "Unknown";

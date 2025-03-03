@@ -381,6 +381,9 @@ NSString * MTRClusterNameForID(MTRClusterIDType clusterID)
     case MTRClusterIDTypeCommissionerControlID:
         result = @"CommissionerControl";
         break;
+    case MTRClusterIDTypeLocationDetectorID:
+        result = @"LocationDetector";
+        break;
     case MTRClusterIDTypeUnitTestingID:
         result = @"UnitTesting";
         break;
@@ -8314,6 +8317,57 @@ NSString * MTRAttributeNameForID(MTRClusterIDType clusterID, MTRAttributeIDType 
         }
         break;
 
+    case MTRClusterIDTypeLocationDetectorID:
+
+        switch (attributeID) {
+
+            // Cluster LocationDetector attributes
+        case MTRAttributeIDTypeClusterLocationDetectorAttributeBeaconUUIDID:
+            result = @"BeaconUUID";
+            break;
+
+        case MTRAttributeIDTypeClusterLocationDetectorAttributeDistanceID:
+            result = @"Distance";
+            break;
+
+        case MTRAttributeIDTypeClusterLocationDetectorAttributeMediatorUIDID:
+            result = @"MediatorUID";
+            break;
+
+        case MTRAttributeIDTypeClusterLocationDetectorAttributeLogEntryID:
+            result = @"LogEntry";
+            break;
+
+        case MTRAttributeIDTypeClusterLocationDetectorAttributeGeneratedCommandListID:
+            result = @"GeneratedCommandList";
+            break;
+
+        case MTRAttributeIDTypeClusterLocationDetectorAttributeAcceptedCommandListID:
+            result = @"AcceptedCommandList";
+            break;
+
+        case MTRAttributeIDTypeClusterLocationDetectorAttributeEventListID:
+            result = @"EventList";
+            break;
+
+        case MTRAttributeIDTypeClusterLocationDetectorAttributeAttributeListID:
+            result = @"AttributeList";
+            break;
+
+        case MTRAttributeIDTypeClusterLocationDetectorAttributeFeatureMapID:
+            result = @"FeatureMap";
+            break;
+
+        case MTRAttributeIDTypeClusterLocationDetectorAttributeClusterRevisionID:
+            result = @"ClusterRevision";
+            break;
+
+        default:
+            result = [NSString stringWithFormat:@"<Unknown attributeID %d>", attributeID];
+            break;
+        }
+        break;
+
     case MTRClusterIDTypeUnitTestingID:
 
         switch (attributeID) {
@@ -11032,6 +11086,16 @@ NSString * MTRRequestCommandNameForID(MTRClusterIDType clusterID, MTRCommandIDTy
         }
         break;
 
+    case MTRClusterIDTypeLocationDetectorID:
+
+        switch (commandID) {
+
+        default:
+            result = [NSString stringWithFormat:@"<Unknown commandID %d>", commandID];
+            break;
+        }
+        break;
+
     case MTRClusterIDTypeUnitTestingID:
 
         switch (commandID) {
@@ -12647,6 +12711,16 @@ NSString * MTRResponseCommandNameForID(MTRClusterIDType clusterID, MTRCommandIDT
         case MTRCommandIDTypeClusterCommissionerControlCommandReverseOpenCommissioningWindowID:
             result = @"ReverseOpenCommissioningWindow";
             break;
+
+        default:
+            result = [NSString stringWithFormat:@"<Unknown commandID %d>", commandID];
+            break;
+        }
+        break;
+
+    case MTRClusterIDTypeLocationDetectorID:
+
+        switch (commandID) {
 
         default:
             result = [NSString stringWithFormat:@"<Unknown commandID %d>", commandID];
@@ -14419,6 +14493,16 @@ NSString * MTREventNameForID(MTRClusterIDType clusterID, MTREventIDType eventID)
         case MTREventIDTypeClusterCommissionerControlEventCommissioningRequestResultID:
             result = @"CommissioningRequestResult";
             break;
+
+        default:
+            result = [NSString stringWithFormat:@"<Unknown eventID %d>", eventID];
+            break;
+        }
+        break;
+
+    case MTRClusterIDTypeLocationDetectorID:
+
+        switch (eventID) {
 
         default:
             result = [NSString stringWithFormat:@"<Unknown eventID %d>", eventID];

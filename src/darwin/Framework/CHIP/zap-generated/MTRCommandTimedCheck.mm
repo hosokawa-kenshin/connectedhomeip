@@ -1160,6 +1160,15 @@ static BOOL CommandNeedsTimedInvokeInCommissionerControlCluster(AttributeId aAtt
     }
     }
 }
+static BOOL CommandNeedsTimedInvokeInLocationDetectorCluster(AttributeId aAttributeId)
+{
+    using namespace Clusters::LocationDetector;
+    switch (aAttributeId) {
+    default: {
+        return NO;
+    }
+    }
+}
 static BOOL CommandNeedsTimedInvokeInUnitTestingCluster(AttributeId aAttributeId)
 {
     using namespace Clusters::UnitTesting;
@@ -1541,6 +1550,9 @@ BOOL MTRCommandNeedsTimedInvoke(NSNumber * _Nonnull aClusterID, NSNumber * _Nonn
     }
     case Clusters::CommissionerControl::Id: {
         return CommandNeedsTimedInvokeInCommissionerControlCluster(commandID);
+    }
+    case Clusters::LocationDetector::Id: {
+        return CommandNeedsTimedInvokeInLocationDetectorCluster(commandID);
     }
     case Clusters::UnitTesting::Id: {
         return CommandNeedsTimedInvokeInUnitTestingCluster(commandID);

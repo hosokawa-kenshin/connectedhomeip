@@ -6044,6 +6044,45 @@ static BOOL AttributeIsSpecifiedInCommissionerControlCluster(AttributeId aAttrib
     }
     }
 }
+static BOOL AttributeIsSpecifiedInLocationDetectorCluster(AttributeId aAttributeId)
+{
+    using namespace Clusters::LocationDetector;
+    switch (aAttributeId) {
+    case Attributes::BeaconUUID::Id: {
+        return YES;
+    }
+    case Attributes::Distance::Id: {
+        return YES;
+    }
+    case Attributes::MediatorUID::Id: {
+        return YES;
+    }
+    case Attributes::LogEntry::Id: {
+        return YES;
+    }
+    case Attributes::GeneratedCommandList::Id: {
+        return YES;
+    }
+    case Attributes::AcceptedCommandList::Id: {
+        return YES;
+    }
+    case Attributes::EventList::Id: {
+        return YES;
+    }
+    case Attributes::AttributeList::Id: {
+        return YES;
+    }
+    case Attributes::FeatureMap::Id: {
+        return YES;
+    }
+    case Attributes::ClusterRevision::Id: {
+        return YES;
+    }
+    default: {
+        return NO;
+    }
+    }
+}
 static BOOL AttributeIsSpecifiedInUnitTestingCluster(AttributeId aAttributeId)
 {
     using namespace Clusters::UnitTesting;
@@ -6725,6 +6764,9 @@ BOOL MTRAttributeIsSpecified(ClusterId aClusterId, AttributeId aAttributeId)
     }
     case Clusters::CommissionerControl::Id: {
         return AttributeIsSpecifiedInCommissionerControlCluster(aAttributeId);
+    }
+    case Clusters::LocationDetector::Id: {
+        return AttributeIsSpecifiedInLocationDetectorCluster(aAttributeId);
     }
     case Clusters::UnitTesting::Id: {
         return AttributeIsSpecifiedInUnitTestingCluster(aAttributeId);

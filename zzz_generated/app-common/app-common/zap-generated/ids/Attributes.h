@@ -7465,6 +7465,52 @@ static constexpr AttributeId Id = Globals::Attributes::ClusterRevision::Id;
 } // namespace Attributes
 } // namespace CommissionerControl
 
+namespace LocationDetector {
+namespace Attributes {
+
+namespace BeaconUUID {
+static constexpr AttributeId Id = 0x00000000;
+} // namespace BeaconUUID
+
+namespace Distance {
+static constexpr AttributeId Id = 0x00000001;
+} // namespace Distance
+
+namespace MediatorUID {
+static constexpr AttributeId Id = 0x00000002;
+} // namespace MediatorUID
+
+namespace LogEntry {
+static constexpr AttributeId Id = 0x00000003;
+} // namespace LogEntry
+
+namespace GeneratedCommandList {
+static constexpr AttributeId Id = Globals::Attributes::GeneratedCommandList::Id;
+} // namespace GeneratedCommandList
+
+namespace AcceptedCommandList {
+static constexpr AttributeId Id = Globals::Attributes::AcceptedCommandList::Id;
+} // namespace AcceptedCommandList
+
+namespace EventList {
+static constexpr AttributeId Id = Globals::Attributes::EventList::Id;
+} // namespace EventList
+
+namespace AttributeList {
+static constexpr AttributeId Id = Globals::Attributes::AttributeList::Id;
+} // namespace AttributeList
+
+namespace FeatureMap {
+static constexpr AttributeId Id = Globals::Attributes::FeatureMap::Id;
+} // namespace FeatureMap
+
+namespace ClusterRevision {
+static constexpr AttributeId Id = Globals::Attributes::ClusterRevision::Id;
+} // namespace ClusterRevision
+
+} // namespace Attributes
+} // namespace LocationDetector
+
 namespace UnitTesting {
 namespace Attributes {
 

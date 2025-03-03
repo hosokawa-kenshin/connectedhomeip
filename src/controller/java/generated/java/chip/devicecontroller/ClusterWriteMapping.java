@@ -3524,6 +3524,96 @@ public class ClusterWriteMapping {
     writeAttributeMap.put("ecosystemInformation", writeEcosystemInformationInteractionInfo);
     Map<String, InteractionInfo> writeCommissionerControlInteractionInfo = new LinkedHashMap<>();
     writeAttributeMap.put("commissionerControl", writeCommissionerControlInteractionInfo);
+    Map<String, InteractionInfo> writeLocationDetectorInteractionInfo = new LinkedHashMap<>();
+    Map<String, CommandParameterInfo> writeLocationDetectorBeaconUUIDCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
+    CommandParameterInfo locationDetectorbeaconUUIDCommandParameterInfo =
+        new CommandParameterInfo(
+            "value", 
+            String.class, 
+            String.class 
+        );
+    writeLocationDetectorBeaconUUIDCommandParams.put(
+        "value",
+        locationDetectorbeaconUUIDCommandParameterInfo
+    );
+    InteractionInfo writeLocationDetectorBeaconUUIDAttributeInteractionInfo = new InteractionInfo(
+      (cluster, callback, commandArguments) -> {
+        ((ChipClusters.LocationDetectorCluster) cluster).writeBeaconUUIDAttribute(
+          (DefaultClusterCallback) callback,
+          (String) commandArguments.get("value")
+        );
+      },
+      () -> new ClusterInfoMapping.DelegatedDefaultClusterCallback(),
+      writeLocationDetectorBeaconUUIDCommandParams
+    );
+    writeLocationDetectorInteractionInfo.put("writeBeaconUUIDAttribute", writeLocationDetectorBeaconUUIDAttributeInteractionInfo);
+    Map<String, CommandParameterInfo> writeLocationDetectorDistanceCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
+    CommandParameterInfo locationDetectordistanceCommandParameterInfo =
+        new CommandParameterInfo(
+            "value", 
+            Integer.class, 
+            Integer.class 
+        );
+    writeLocationDetectorDistanceCommandParams.put(
+        "value",
+        locationDetectordistanceCommandParameterInfo
+    );
+    InteractionInfo writeLocationDetectorDistanceAttributeInteractionInfo = new InteractionInfo(
+      (cluster, callback, commandArguments) -> {
+        ((ChipClusters.LocationDetectorCluster) cluster).writeDistanceAttribute(
+          (DefaultClusterCallback) callback,
+          (Integer) commandArguments.get("value")
+        );
+      },
+      () -> new ClusterInfoMapping.DelegatedDefaultClusterCallback(),
+      writeLocationDetectorDistanceCommandParams
+    );
+    writeLocationDetectorInteractionInfo.put("writeDistanceAttribute", writeLocationDetectorDistanceAttributeInteractionInfo);
+    Map<String, CommandParameterInfo> writeLocationDetectorMediatorUIDCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
+    CommandParameterInfo locationDetectormediatorUIDCommandParameterInfo =
+        new CommandParameterInfo(
+            "value", 
+            String.class, 
+            String.class 
+        );
+    writeLocationDetectorMediatorUIDCommandParams.put(
+        "value",
+        locationDetectormediatorUIDCommandParameterInfo
+    );
+    InteractionInfo writeLocationDetectorMediatorUIDAttributeInteractionInfo = new InteractionInfo(
+      (cluster, callback, commandArguments) -> {
+        ((ChipClusters.LocationDetectorCluster) cluster).writeMediatorUIDAttribute(
+          (DefaultClusterCallback) callback,
+          (String) commandArguments.get("value")
+        );
+      },
+      () -> new ClusterInfoMapping.DelegatedDefaultClusterCallback(),
+      writeLocationDetectorMediatorUIDCommandParams
+    );
+    writeLocationDetectorInteractionInfo.put("writeMediatorUIDAttribute", writeLocationDetectorMediatorUIDAttributeInteractionInfo);
+    Map<String, CommandParameterInfo> writeLocationDetectorLogEntryCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
+    CommandParameterInfo locationDetectorlogEntryCommandParameterInfo =
+        new CommandParameterInfo(
+            "value", 
+            String.class, 
+            String.class 
+        );
+    writeLocationDetectorLogEntryCommandParams.put(
+        "value",
+        locationDetectorlogEntryCommandParameterInfo
+    );
+    InteractionInfo writeLocationDetectorLogEntryAttributeInteractionInfo = new InteractionInfo(
+      (cluster, callback, commandArguments) -> {
+        ((ChipClusters.LocationDetectorCluster) cluster).writeLogEntryAttribute(
+          (DefaultClusterCallback) callback,
+          (String) commandArguments.get("value")
+        );
+      },
+      () -> new ClusterInfoMapping.DelegatedDefaultClusterCallback(),
+      writeLocationDetectorLogEntryCommandParams
+    );
+    writeLocationDetectorInteractionInfo.put("writeLogEntryAttribute", writeLocationDetectorLogEntryAttributeInteractionInfo);
+    writeAttributeMap.put("locationDetector", writeLocationDetectorInteractionInfo);
     Map<String, InteractionInfo> writeUnitTestingInteractionInfo = new LinkedHashMap<>();
     Map<String, CommandParameterInfo> writeUnitTestingBooleanCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
     CommandParameterInfo unitTestingbooleanCommandParameterInfo =
