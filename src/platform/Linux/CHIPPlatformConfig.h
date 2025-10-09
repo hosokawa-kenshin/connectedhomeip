@@ -67,5 +67,5 @@ using CHIP_CONFIG_PERSISTED_STORAGE_KEY_TYPE = const char *;
 // ==================== Security Configuration Overrides ====================
 
 #ifndef CHIP_CONFIG_KVS_PATH
-#define CHIP_CONFIG_KVS_PATH "/tmp/chip_kvs"
+#define CHIP_CONFIG_KVS_PATH "./chip_kvs"
 #endif // CHIP_CONFIG_KVS_PATH

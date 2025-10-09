@@ -38,15 +38,15 @@
 #include <string>
 
 #ifndef FATCONFDIR
-#define FATCONFDIR "/tmp"
+#define FATCONFDIR "."
 #endif
 
 #ifndef SYSCONFDIR
-#define SYSCONFDIR "/tmp"
+#define SYSCONFDIR "."
 #endif
 
 #ifndef LOCALSTATEDIR
-#define LOCALSTATEDIR "/tmp"
+#define LOCALSTATEDIR "."
 #endif
 
 #define CHIP_DEFAULT_FACTORY_PATH                                                                                                  \
