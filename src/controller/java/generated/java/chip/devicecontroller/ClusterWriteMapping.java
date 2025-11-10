@@ -3614,6 +3614,52 @@ public class ClusterWriteMapping {
     );
     writeLocationDetectorInteractionInfo.put("writeLogEntryAttribute", writeLocationDetectorLogEntryAttributeInteractionInfo);
     writeAttributeMap.put("locationDetector", writeLocationDetectorInteractionInfo);
+    Map<String, InteractionInfo> writeEntityLocationInteractionInfo = new LinkedHashMap<>();
+    Map<String, CommandParameterInfo> writeEntityLocationIdCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
+    CommandParameterInfo entityLocationidCommandParameterInfo =
+        new CommandParameterInfo(
+            "value", 
+            String.class, 
+            String.class 
+        );
+    writeEntityLocationIdCommandParams.put(
+        "value",
+        entityLocationidCommandParameterInfo
+    );
+    InteractionInfo writeEntityLocationIdAttributeInteractionInfo = new InteractionInfo(
+      (cluster, callback, commandArguments) -> {
+        ((ChipClusters.EntityLocationCluster) cluster).writeIdAttribute(
+          (DefaultClusterCallback) callback,
+          (String) commandArguments.get("value")
+        );
+      },
+      () -> new ClusterInfoMapping.DelegatedDefaultClusterCallback(),
+      writeEntityLocationIdCommandParams
+    );
+    writeEntityLocationInteractionInfo.put("writeIdAttribute", writeEntityLocationIdAttributeInteractionInfo);
+    Map<String, CommandParameterInfo> writeEntityLocationLocationCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
+    CommandParameterInfo entityLocationlocationCommandParameterInfo =
+        new CommandParameterInfo(
+            "value", 
+            String.class, 
+            String.class 
+        );
+    writeEntityLocationLocationCommandParams.put(
+        "value",
+        entityLocationlocationCommandParameterInfo
+    );
+    InteractionInfo writeEntityLocationLocationAttributeInteractionInfo = new InteractionInfo(
+      (cluster, callback, commandArguments) -> {
+        ((ChipClusters.EntityLocationCluster) cluster).writeLocationAttribute(
+          (DefaultClusterCallback) callback,
+          (String) commandArguments.get("value")
+        );
+      },
+      () -> new ClusterInfoMapping.DelegatedDefaultClusterCallback(),
+      writeEntityLocationLocationCommandParams
+    );
+    writeEntityLocationInteractionInfo.put("writeLocationAttribute", writeEntityLocationLocationAttributeInteractionInfo);
+    writeAttributeMap.put("entityLocation", writeEntityLocationInteractionInfo);
     Map<String, InteractionInfo> writeUnitTestingInteractionInfo = new LinkedHashMap<>();
     Map<String, CommandParameterInfo> writeUnitTestingBooleanCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
     CommandParameterInfo unitTestingbooleanCommandParameterInfo =

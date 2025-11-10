@@ -5472,6 +5472,8 @@ enum class SupportedDeviceCategoryBitmap : uint32_t
 
 namespace LocationDetector {} // namespace LocationDetector
 
+namespace EntityLocation {} // namespace EntityLocation
+
 namespace UnitTesting {
 
 // Enum for SimpleEnum

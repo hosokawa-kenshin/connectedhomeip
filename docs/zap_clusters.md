@@ -134,6 +134,7 @@ Generally regenerate using one of:
 |       1872 |      0x750 | EcosystemInformation                                    |
 |       1873 |      0x751 | CommissionerControl                                     |
 | 4294048769 | 0xFFF1FC01 | LocationDetector                                        |
+| 4294048770 | 0xFFF1FC02 | EntityLocation                                          |
 | 4294048773 | 0xFFF1FC05 | UnitTesting                                             |
 | 4294048774 | 0xFFF1FC06 | FaultInjection                                          |
 | 4294048800 | 0xFFF1FC20 | SampleMei                                               |

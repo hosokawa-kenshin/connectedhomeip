@@ -19,18 +19,18 @@
   "package": [
     {
       "pathRelativity": "relativeToZap",
+      "path": "../../app/zap-templates/app-templates.json",
+      "type": "gen-templates-json",
+      "category": "matter",
+      "version": "chip-v1"
+    },
+    {
+      "pathRelativity": "relativeToZap",
       "path": "../../app/zap-templates/zcl/zcl.json",
       "type": "zcl-properties",
       "category": "matter",
       "version": 1,
       "description": "Matter SDK ZCL data"
-    },
-    {
-      "pathRelativity": "relativeToZap",
-      "path": "../../app/zap-templates/app-templates.json",
-      "type": "gen-templates-json",
-      "category": "matter",
-      "version": "chip-v1"
     }
   ],
   "endpointTypes": [
@@ -2962,6 +2962,14 @@
           "code": 4294048769,
           "mfgCode": null,
           "define": "LOCATION_DETECTOR_CLUSTER",
+          "side": "client",
+          "enabled": 1
+        },
+        {
+          "name": "Entity Location",
+          "code": 4294048770,
+          "mfgCode": null,
+          "define": "ENTITY_LOCATION_CLUSTER",
           "side": "client",
           "enabled": 1
         },

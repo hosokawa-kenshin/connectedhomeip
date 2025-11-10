@@ -269,6 +269,8 @@ char const * ClusterIdToText(chip::ClusterId id)
         return "CommissionerControl";
     case chip::app::Clusters::LocationDetector::Id:
         return "LocationDetector";
+    case chip::app::Clusters::EntityLocation::Id:
+        return "EntityLocation";
     case chip::app::Clusters::UnitTesting::Id:
         return "UnitTesting";
     case chip::app::Clusters::FaultInjection::Id:
@@ -4495,6 +4497,29 @@ char const * AttributeIdToText(chip::ClusterId cluster, chip::AttributeId id)
         case chip::app::Clusters::LocationDetector::Attributes::FeatureMap::Id:
             return "FeatureMap";
         case chip::app::Clusters::LocationDetector::Attributes::ClusterRevision::Id:
+            return "ClusterRevision";
+        default:
+            return "Unknown";
+        }
+    }
+    case chip::app::Clusters::EntityLocation::Id: {
+        switch (id)
+        {
+        case chip::app::Clusters::EntityLocation::Attributes::Id::Id:
+            return "Id";
+        case chip::app::Clusters::EntityLocation::Attributes::Location::Id:
+            return "Location";
+        case chip::app::Clusters::EntityLocation::Attributes::GeneratedCommandList::Id:
+            return "GeneratedCommandList";
+        case chip::app::Clusters::EntityLocation::Attributes::AcceptedCommandList::Id:
+            return "AcceptedCommandList";
+        case chip::app::Clusters::EntityLocation::Attributes::EventList::Id:
+            return "EventList";
+        case chip::app::Clusters::EntityLocation::Attributes::AttributeList::Id:
+            return "AttributeList";
+        case chip::app::Clusters::EntityLocation::Attributes::FeatureMap::Id:
+            return "FeatureMap";
+        case chip::app::Clusters::EntityLocation::Attributes::ClusterRevision::Id:
             return "ClusterRevision";
         default:
             return "Unknown";

@@ -391,6 +391,9 @@ static constexpr ClusterId Id = 0x00000751;
 namespace LocationDetector {
 static constexpr ClusterId Id = 0xFFF1FC01;
 } // namespace LocationDetector
+namespace EntityLocation {
+static constexpr ClusterId Id = 0xFFF1FC02;
+} // namespace EntityLocation
 namespace UnitTesting {
 static constexpr ClusterId Id = 0xFFF1FC05;
 } // namespace UnitTesting

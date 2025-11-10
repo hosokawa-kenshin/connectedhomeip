@@ -18718,6 +18718,98 @@ public class ClusterReadMapping {
      
        return result;
     }
+    private static Map<String, InteractionInfo> readEntityLocationInteractionInfo() {
+       Map<String, InteractionInfo> result = new LinkedHashMap<>();Map<String, CommandParameterInfo> readEntityLocationIdCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
+        InteractionInfo readEntityLocationIdAttributeInteractionInfo = new InteractionInfo(
+          (cluster, callback, commandArguments) -> {
+            ((ChipClusters.EntityLocationCluster) cluster).readIdAttribute(
+              (ChipClusters.CharStringAttributeCallback) callback
+            );
+          },
+          () -> new ClusterInfoMapping.DelegatedCharStringAttributeCallback(),
+          readEntityLocationIdCommandParams
+        );
+        result.put("readIdAttribute", readEntityLocationIdAttributeInteractionInfo);
+     Map<String, CommandParameterInfo> readEntityLocationLocationCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
+        InteractionInfo readEntityLocationLocationAttributeInteractionInfo = new InteractionInfo(
+          (cluster, callback, commandArguments) -> {
+            ((ChipClusters.EntityLocationCluster) cluster).readLocationAttribute(
+              (ChipClusters.CharStringAttributeCallback) callback
+            );
+          },
+          () -> new ClusterInfoMapping.DelegatedCharStringAttributeCallback(),
+          readEntityLocationLocationCommandParams
+        );
+        result.put("readLocationAttribute", readEntityLocationLocationAttributeInteractionInfo);
+     Map<String, CommandParameterInfo> readEntityLocationGeneratedCommandListCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
+        InteractionInfo readEntityLocationGeneratedCommandListAttributeInteractionInfo = new InteractionInfo(
+          (cluster, callback, commandArguments) -> {
+            ((ChipClusters.EntityLocationCluster) cluster).readGeneratedCommandListAttribute(
+              (ChipClusters.EntityLocationCluster.GeneratedCommandListAttributeCallback) callback
+            );
+          },
+          () -> new ClusterInfoMapping.DelegatedEntityLocationClusterGeneratedCommandListAttributeCallback(),
+          readEntityLocationGeneratedCommandListCommandParams
+        );
+        result.put("readGeneratedCommandListAttribute", readEntityLocationGeneratedCommandListAttributeInteractionInfo);
+     Map<String, CommandParameterInfo> readEntityLocationAcceptedCommandListCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
+        InteractionInfo readEntityLocationAcceptedCommandListAttributeInteractionInfo = new InteractionInfo(
+          (cluster, callback, commandArguments) -> {
+            ((ChipClusters.EntityLocationCluster) cluster).readAcceptedCommandListAttribute(
+              (ChipClusters.EntityLocationCluster.AcceptedCommandListAttributeCallback) callback
+            );
+          },
+          () -> new ClusterInfoMapping.DelegatedEntityLocationClusterAcceptedCommandListAttributeCallback(),
+          readEntityLocationAcceptedCommandListCommandParams
+        );
+        result.put("readAcceptedCommandListAttribute", readEntityLocationAcceptedCommandListAttributeInteractionInfo);
+     Map<String, CommandParameterInfo> readEntityLocationEventListCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
+        InteractionInfo readEntityLocationEventListAttributeInteractionInfo = new InteractionInfo(
+          (cluster, callback, commandArguments) -> {
+            ((ChipClusters.EntityLocationCluster) cluster).readEventListAttribute(
+              (ChipClusters.EntityLocationCluster.EventListAttributeCallback) callback
+            );
+          },
+          () -> new ClusterInfoMapping.DelegatedEntityLocationClusterEventListAttributeCallback(),
+          readEntityLocationEventListCommandParams
+        );
+        result.put("readEventListAttribute", readEntityLocationEventListAttributeInteractionInfo);
+     Map<String, CommandParameterInfo> readEntityLocationAttributeListCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
+        InteractionInfo readEntityLocationAttributeListAttributeInteractionInfo = new InteractionInfo(
+          (cluster, callback, commandArguments) -> {
+            ((ChipClusters.EntityLocationCluster) cluster).readAttributeListAttribute(
+              (ChipClusters.EntityLocationCluster.AttributeListAttributeCallback) callback
+            );
+          },
+          () -> new ClusterInfoMapping.DelegatedEntityLocationClusterAttributeListAttributeCallback(),
+          readEntityLocationAttributeListCommandParams
+        );
+        result.put("readAttributeListAttribute", readEntityLocationAttributeListAttributeInteractionInfo);
+     Map<String, CommandParameterInfo> readEntityLocationFeatureMapCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
+        InteractionInfo readEntityLocationFeatureMapAttributeInteractionInfo = new InteractionInfo(
+          (cluster, callback, commandArguments) -> {
+            ((ChipClusters.EntityLocationCluster) cluster).readFeatureMapAttribute(
+              (ChipClusters.LongAttributeCallback) callback
+            );
+          },
+          () -> new ClusterInfoMapping.DelegatedLongAttributeCallback(),
+          readEntityLocationFeatureMapCommandParams
+        );
+        result.put("readFeatureMapAttribute", readEntityLocationFeatureMapAttributeInteractionInfo);
+     Map<String, CommandParameterInfo> readEntityLocationClusterRevisionCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
+        InteractionInfo readEntityLocationClusterRevisionAttributeInteractionInfo = new InteractionInfo(
+          (cluster, callback, commandArguments) -> {
+            ((ChipClusters.EntityLocationCluster) cluster).readClusterRevisionAttribute(
+              (ChipClusters.IntegerAttributeCallback) callback
+            );
+          },
+          () -> new ClusterInfoMapping.DelegatedIntegerAttributeCallback(),
+          readEntityLocationClusterRevisionCommandParams
+        );
+        result.put("readClusterRevisionAttribute", readEntityLocationClusterRevisionAttributeInteractionInfo);
+     
+       return result;
+    }
     private static Map<String, InteractionInfo> readUnitTestingInteractionInfo() {
        Map<String, InteractionInfo> result = new LinkedHashMap<>();Map<String, CommandParameterInfo> readUnitTestingBooleanCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
         InteractionInfo readUnitTestingBooleanAttributeInteractionInfo = new InteractionInfo(
@@ -20000,6 +20092,7 @@ public class ClusterReadMapping {
             put("ecosystemInformation", readEcosystemInformationInteractionInfo());
             put("commissionerControl", readCommissionerControlInteractionInfo());
             put("locationDetector", readLocationDetectorInteractionInfo());
+            put("entityLocation", readEntityLocationInteractionInfo());
             put("unitTesting", readUnitTestingInteractionInfo());
             put("faultInjection", readFaultInjectionInteractionInfo());
             put("sampleMei", readSampleMeiInteractionInfo());}};

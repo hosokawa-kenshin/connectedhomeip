@@ -6083,6 +6083,39 @@ static BOOL AttributeIsSpecifiedInLocationDetectorCluster(AttributeId aAttribute
     }
     }
 }
+static BOOL AttributeIsSpecifiedInEntityLocationCluster(AttributeId aAttributeId)
+{
+    using namespace Clusters::EntityLocation;
+    switch (aAttributeId) {
+    case Attributes::Id::Id: {
+        return YES;
+    }
+    case Attributes::Location::Id: {
+        return YES;
+    }
+    case Attributes::GeneratedCommandList::Id: {
+        return YES;
+    }
+    case Attributes::AcceptedCommandList::Id: {
+        return YES;
+    }
+    case Attributes::EventList::Id: {
+        return YES;
+    }
+    case Attributes::AttributeList::Id: {
+        return YES;
+    }
+    case Attributes::FeatureMap::Id: {
+        return YES;
+    }
+    case Attributes::ClusterRevision::Id: {
+        return YES;
+    }
+    default: {
+        return NO;
+    }
+    }
+}
 static BOOL AttributeIsSpecifiedInUnitTestingCluster(AttributeId aAttributeId)
 {
     using namespace Clusters::UnitTesting;
@@ -6767,6 +6800,9 @@ BOOL MTRAttributeIsSpecified(ClusterId aClusterId, AttributeId aAttributeId)
     }
     case Clusters::LocationDetector::Id: {
         return AttributeIsSpecifiedInLocationDetectorCluster(aAttributeId);
+    }
+    case Clusters::EntityLocation::Id: {
+        return AttributeIsSpecifiedInEntityLocationCluster(aAttributeId);
     }
     case Clusters::UnitTesting::Id: {
         return AttributeIsSpecifiedInUnitTestingCluster(aAttributeId);

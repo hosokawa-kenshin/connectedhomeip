@@ -13401,6 +13401,64 @@ class ChipClusters:
             },
         },
     }
+    _ENTITY_LOCATION_CLUSTER_INFO = {
+        "clusterName": "EntityLocation",
+        "clusterId": 0xFFF1FC02,
+        "commands": {
+        },
+        "attributes": {
+            0x00000000: {
+                "attributeName": "Id",
+                "attributeId": 0x00000000,
+                "type": "str",
+                "reportable": True,
+                "writable": True,
+            },
+            0x00000001: {
+                "attributeName": "Location",
+                "attributeId": 0x00000001,
+                "type": "str",
+                "reportable": True,
+                "writable": True,
+            },
+            0x0000FFF8: {
+                "attributeName": "GeneratedCommandList",
+                "attributeId": 0x0000FFF8,
+                "type": "int",
+                "reportable": True,
+            },
+            0x0000FFF9: {
+                "attributeName": "AcceptedCommandList",
+                "attributeId": 0x0000FFF9,
+                "type": "int",
+                "reportable": True,
+            },
+            0x0000FFFA: {
+                "attributeName": "EventList",
+                "attributeId": 0x0000FFFA,
+                "type": "int",
+                "reportable": True,
+            },
+            0x0000FFFB: {
+                "attributeName": "AttributeList",
+                "attributeId": 0x0000FFFB,
+                "type": "int",
+                "reportable": True,
+            },
+            0x0000FFFC: {
+                "attributeName": "FeatureMap",
+                "attributeId": 0x0000FFFC,
+                "type": "int",
+                "reportable": True,
+            },
+            0x0000FFFD: {
+                "attributeName": "ClusterRevision",
+                "attributeId": 0x0000FFFD,
+                "type": "int",
+                "reportable": True,
+            },
+        },
+    }
     _UNIT_TESTING_CLUSTER_INFO = {
         "clusterName": "UnitTesting",
         "clusterId": 0xFFF1FC05,
@@ -14530,6 +14588,7 @@ class ChipClusters:
         0x00000750: _ECOSYSTEM_INFORMATION_CLUSTER_INFO,
         0x00000751: _COMMISSIONER_CONTROL_CLUSTER_INFO,
         0xFFF1FC01: _LOCATION_DETECTOR_CLUSTER_INFO,
+        0xFFF1FC02: _ENTITY_LOCATION_CLUSTER_INFO,
         0xFFF1FC05: _UNIT_TESTING_CLUSTER_INFO,
         0xFFF1FC06: _FAULT_INJECTION_CLUSTER_INFO,
         0xFFF1FC20: _SAMPLE_MEI_CLUSTER_INFO,
@@ -14658,6 +14717,7 @@ class ChipClusters:
         "EcosystemInformation": _ECOSYSTEM_INFORMATION_CLUSTER_INFO,
         "CommissionerControl": _COMMISSIONER_CONTROL_CLUSTER_INFO,
         "LocationDetector": _LOCATION_DETECTOR_CLUSTER_INFO,
+        "EntityLocation": _ENTITY_LOCATION_CLUSTER_INFO,
         "UnitTesting": _UNIT_TESTING_CLUSTER_INFO,
         "FaultInjection": _FAULT_INJECTION_CLUSTER_INFO,
         "SampleMei": _SAMPLE_MEI_CLUSTER_INFO,

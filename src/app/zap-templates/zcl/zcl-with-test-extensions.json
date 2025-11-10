@@ -140,7 +140,8 @@
         "types/door-lock.xml",
         "types/occupancy-sensing.xml",
         "types/thermostat-user-interface-configuration.xml",
-        "location-detector-cluster.xml"
+        "location-detector-cluster.xml",
+        "entity-location-cluster.xml"
     ],
     "manufacturersXml": "../../../../src/app/zap-templates/zcl/data-model/manufacturers.xml",
     "options": {
