@@ -47587,6 +47587,23 @@ class LocationDetector(Cluster):
     featureMap: 'uint' = None
     clusterRevision: 'uint' = None
 
+    class Commands:
+        @dataclass
+        class RecordEntry(ClusterCommand):
+            cluster_id: typing.ClassVar[int] = 0xFFF1FC01
+            command_id: typing.ClassVar[int] = 0x00000000
+            is_client: typing.ClassVar[bool] = True
+            response_type: typing.ClassVar[str] = None
+
+            @ChipUtility.classproperty
+            def descriptor(cls) -> ClusterObjectDescriptor:
+                return ClusterObjectDescriptor(
+                    Fields=[
+                        ClusterObjectFieldDescriptor(Label="entry", Tag=0, Type=str),
+                    ])
+
+            entry: 'str' = ""
+
     class Attributes:
         @dataclass
         class BeaconUUID(ClusterAttributeDescriptor):

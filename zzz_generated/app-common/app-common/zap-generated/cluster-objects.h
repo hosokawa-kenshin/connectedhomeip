@@ -42300,6 +42300,51 @@ public:
 } // namespace CommissionerControl
 namespace LocationDetector {
 
+namespace Commands {
+// Forward-declarations so we can reference these later.
+
+namespace RecordEntry {
+struct Type;
+struct DecodableType;
+} // namespace RecordEntry
+
+} // namespace Commands
+
+namespace Commands {
+namespace RecordEntry {
+enum class Fields : uint8_t
+{
+    kEntry = 0,
+};
+
+struct Type
+{
+public:
+    // Use GetCommandId instead of commandId directly to avoid naming conflict with CommandIdentification in ExecutionOfACommand
+    static constexpr CommandId GetCommandId() { return Commands::RecordEntry::Id; }
+    static constexpr ClusterId GetClusterId() { return Clusters::LocationDetector::Id; }
+
+    chip::CharSpan entry;
+
+    CHIP_ERROR Encode(TLV::TLVWriter & aWriter, TLV::Tag aTag) const;
+
+    using ResponseType = DataModel::NullObjectType;
+
+    static constexpr bool MustUseTimedInvoke() { return false; }
+};
+
+struct DecodableType
+{
+public:
+    static constexpr CommandId GetCommandId() { return Commands::RecordEntry::Id; }
+    static constexpr ClusterId GetClusterId() { return Clusters::LocationDetector::Id; }
+
+    chip::CharSpan entry;
+    CHIP_ERROR Decode(TLV::TLVReader & reader);
+};
+}; // namespace RecordEntry
+} // namespace Commands
+
 namespace Attributes {
 
 namespace BeaconUUID {

@@ -1865,6 +1865,16 @@ static constexpr CommandId Id = 0x00000002;
 } // namespace Commands
 } // namespace CommissionerControl
 
+namespace LocationDetector {
+namespace Commands {
+
+namespace RecordEntry {
+static constexpr CommandId Id = 0x00000000;
+} // namespace RecordEntry
+
+} // namespace Commands
+} // namespace LocationDetector
+
 namespace UnitTesting {
 namespace Commands {
 

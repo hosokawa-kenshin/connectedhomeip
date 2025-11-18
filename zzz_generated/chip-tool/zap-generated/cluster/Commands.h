@@ -14061,6 +14061,7 @@ private:
 | Cluster LocationDetector                                            | 0xFFF1FC01 |
 |------------------------------------------------------------------------------|
 | Commands:                                                           |        |
+| * RecordEntry                                                       |   0x00 |
 |------------------------------------------------------------------------------|
 | Attributes:                                                         |        |
 | * BeaconUUID                                                        | 0x0000 |
@@ -14076,6 +14077,43 @@ private:
 |------------------------------------------------------------------------------|
 | Events:                                                             |        |
 \*----------------------------------------------------------------------------*/
+
+/*
+ * Command RecordEntry
+ */
+class LocationDetectorRecordEntry : public ClusterCommand
+{
+public:
+    LocationDetectorRecordEntry(CredentialIssuerCommands * credsIssuerConfig) : ClusterCommand("record-entry", credsIssuerConfig)
+    {
+        AddArgument("Entry", &mRequest.entry);
+        ClusterCommand::AddArguments();
+    }
+
+    CHIP_ERROR SendCommand(chip::DeviceProxy * device, std::vector<chip::EndpointId> endpointIds) override
+    {
+        constexpr chip::ClusterId clusterId = chip::app::Clusters::LocationDetector::Id;
+        constexpr chip::CommandId commandId = chip::app::Clusters::LocationDetector::Commands::RecordEntry::Id;
+
+        ChipLogProgress(chipTool, "Sending cluster (0x%08" PRIX32 ") command (0x%08" PRIX32 ") on endpoint %u", clusterId,
+                        commandId, endpointIds.at(0));
+        return ClusterCommand::SendCommand(device, endpointIds.at(0), clusterId, commandId, mRequest);
+    }
+
+    CHIP_ERROR SendGroupCommand(chip::GroupId groupId, chip::FabricIndex fabricIndex) override
+    {
+        constexpr chip::ClusterId clusterId = chip::app::Clusters::LocationDetector::Id;
+        constexpr chip::CommandId commandId = chip::app::Clusters::LocationDetector::Commands::RecordEntry::Id;
+
+        ChipLogProgress(chipTool, "Sending cluster (0x%08" PRIX32 ") command (0x%08" PRIX32 ") on Group %u", clusterId, commandId,
+                        groupId);
+
+        return ClusterCommand::SendGroupCommand(groupId, fabricIndex, clusterId, commandId, mRequest);
+    }
+
+private:
+    chip::app::Clusters::LocationDetector::Commands::RecordEntry::Type mRequest;
+};
 
 /*----------------------------------------------------------------------------*\
 | Cluster EntityLocation                                              | 0xFFF1FC02 |
@@ -26764,7 +26802,8 @@ void registerClusterLocationDetector(Commands & commands, CredentialIssuerComman
         //
         // Commands
         //
-        make_unique<ClusterCommand>(Id, credsIssuerConfig), //
+        make_unique<ClusterCommand>(Id, credsIssuerConfig),          //
+        make_unique<LocationDetectorRecordEntry>(credsIssuerConfig), //
         //
         // Attributes
         //

@@ -6757,6 +6757,12 @@ bool emberAfCommissionerControlClusterCommissionNodeCallback(
     chip::app::CommandHandler * commandObj, const chip::app::ConcreteCommandPath & commandPath,
     const chip::app::Clusters::CommissionerControl::Commands::CommissionNode::DecodableType & commandData);
 /**
+ * @brief Location Detector Cluster RecordEntry Command callback (from client)
+ */
+bool emberAfLocationDetectorClusterRecordEntryCallback(
+    chip::app::CommandHandler * commandObj, const chip::app::ConcreteCommandPath & commandPath,
+    const chip::app::Clusters::LocationDetector::Commands::RecordEntry::DecodableType & commandData);
+/**
  * @brief Unit Testing Cluster Test Command callback (from client)
  */
 bool emberAfUnitTestingClusterTestCallback(chip::app::CommandHandler * commandObj,

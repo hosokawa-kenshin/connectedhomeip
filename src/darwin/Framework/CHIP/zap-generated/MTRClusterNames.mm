@@ -11136,6 +11136,10 @@ NSString * MTRRequestCommandNameForID(MTRClusterIDType clusterID, MTRCommandIDTy
 
         switch (commandID) {
 
+        case MTRCommandIDTypeClusterLocationDetectorCommandRecordEntryID:
+            result = @"RecordEntry";
+            break;
+
         default:
             result = [NSString stringWithFormat:@"<Unknown commandID %d>", commandID];
             break;

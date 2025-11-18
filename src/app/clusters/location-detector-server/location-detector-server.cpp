@@ -25,6 +25,7 @@ using namespace chip;
 using namespace chip::app;
 using namespace chip::app::Clusters;
 using namespace chip::app::Clusters::LocationDetector;
+using namespace chip::app::Clusters::LocationDetector::Commands;
 using namespace chip::app::Clusters::LocationDetector::Attributes;
 
 // -----------------------------------------------------------------------------
@@ -173,6 +174,21 @@ void MatterLocationDetectorClusterServerShutdownCallback(chip::EndpointId endpoi
 // AttributeAccessInterfaceを用いた実装を行うとこの関数は呼ばれない
 void MatterLocationDetectorClusterServerAttributeChangedCallback(const chip::app::ConcreteAttributePath & attributePath) {}
 
+// -----------------------------------------------------------------------------
+// Command Callbacks
+
+bool emberAfLocationDetectorClusterRecordEntryCallback(
+    chip::app::CommandHandler * commandObj, const chip::app::ConcreteCommandPath & commandPath,
+    const chip::app::Clusters::LocationDetector::Commands::RecordEntry::DecodableType & commandData)
+{
+    auto endpoint = commandPath.mEndpointId;
+    ChipLogProgress(Zcl, "RecordEntry Command on Ep %d", endpoint);
+    commandObj->AddStatus(commandPath, chip::Protocols::InteractionModel::Status::Success);
+    return true;
+}
+
+// -----------------------------------------------------------------------------
+
 namespace chip {
 namespace app {
 namespace Clusters {
@@ -187,7 +203,62 @@ LocationDetectorContent::LocationDetectorContent(EndpointId aEndpoint)
     uidChar[36] = '\0';
 }
 
-void LocationDetectorServer::InvokeCommand(HandlerContext & ctxt) {}
+void LocationDetectorServer::InvokeCommand(HandlerContext & ctxt)
+{
+    auto endpoint      = ctxt.mRequestPath.mEndpointId;
+    auto endpointIndex = EndpointIndex(endpoint);
+    if (endpointIndex == std::numeric_limits<size_t>::max())
+    {
+        ctxt.mCommandHandler.AddStatus(ctxt.mRequestPath, Protocols::InteractionModel::Status::UnsupportedEndpoint);
+        return;
+    }
+
+    switch (ctxt.mRequestPath.mCommandId)
+    {
+    case Commands::RecordEntry::Id:
+        HandleCommand<Commands::RecordEntry::DecodableType>(
+            ctxt, [this, endpoint, endpointIndex](HandlerContext & ctx, const auto & req) {
+                // req.entry is a CharSpan containing the string payload for the entry
+                ChipLogProgress(Zcl, "RecordEntry Command on Ep %d", endpoint);
+
+                // copy into internal storage (null-terminate)
+                size_t len = std::min(req.entry.size(), sizeof(content[endpointIndex].log) - 1);
+                if (len > 0 && req.entry.data() != nullptr)
+                {
+                    memcpy(content[endpointIndex].log, req.entry.data(), len);
+                }
+                content[endpointIndex].log[len] = '\0';
+
+                // Parse entry in the same format as Write handling: UUID:distance:mediatoruid
+                std::string logStr(content[endpointIndex].log);
+                size_t colonPos1 = logStr.find(':');
+                if (colonPos1 != std::string::npos)
+                {
+                    size_t colonPos2 = logStr.find(':', colonPos1 + 1);
+                    if (colonPos2 != std::string::npos)
+                    {
+                        std::string uuid        = logStr.substr(0, colonPos1);
+                        std::string distanceStr = logStr.substr(colonPos1 + 1, colonPos2 - colonPos1 - 1);
+
+                        uint16_t distance       = static_cast<uint16_t>(std::stoul(distanceStr));
+                        std::string mediatoruid = logStr.substr(colonPos2 + 1, 17);
+
+                        memcpy(content[endpointIndex].uidChar, uuid.c_str(), uuid.size() + 1);
+                        content[endpointIndex].distance = distance;
+                        memcpy(content[endpointIndex].MediatorUID, mediatoruid.c_str(), mediatoruid.size() + 1);
+
+                        insertDatabase(content[endpointIndex].MediatorUID, content[endpointIndex].uidChar,
+                                       content[endpointIndex].distance);
+                    }
+                }
+
+                ctx.mCommandHandler.AddStatus(ctx.mRequestPath, Protocols::InteractionModel::Status::Success);
+            });
+        return;
+    default:
+        break;
+    }
+}
 
 CHIP_ERROR EncodeStringOnSuccess(CHIP_ERROR status, AttributeValueEncoder & encoder, const char * buf, size_t maxBufSize)
 {
@@ -270,7 +341,8 @@ CHIP_ERROR LocationDetectorServer::Write(const ConcreteDataAttributePath & aPath
         if (recvdata.data() != nullptr && recvdata.size() > 0)
         {
             memcpy(content[endpointIndex].log, recvdata.data(), recvdata.size());
-
+            ChipLogProgress(DeviceLayer, "LocationDetectorServer::Write called: ep=%d attr=0x%08x", aPath.mEndpointId,
+                            (uint32_t) aPath.mAttributeId);
             std::string logStr(content[endpointIndex].log);
             size_t colonPos1 = logStr.find(':');
             if (colonPos1 != std::string::npos)

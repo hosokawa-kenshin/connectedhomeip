@@ -60888,6 +60888,26 @@ public class ChipClusters {
       return 0L;
     }
 
+    public void recordEntry(DefaultClusterCallback callback, String entry) {
+      recordEntry(callback, entry, 0);
+    }
+
+    public void recordEntry(DefaultClusterCallback callback, String entry, int timedInvokeTimeoutMs) {
+      final long commandId = 0L;
+
+      ArrayList<StructElement> elements = new ArrayList<>();
+      final long entryFieldID = 0L;
+      BaseTLVType entrytlvValue = new StringType(entry);
+      elements.add(new StructElement(entryFieldID, entrytlvValue));
+
+      StructType commandArgs = new StructType(elements);
+      invoke(new InvokeCallbackImpl(callback) {
+          @Override
+          public void onResponse(StructType invokeStructValue) {
+          callback.onSuccess();
+        }}, commandId, commandArgs, timedInvokeTimeoutMs);
+    }
+
     public interface GeneratedCommandListAttributeCallback extends BaseAttributeCallback {
       void onSuccess(List<Long> value);
     }

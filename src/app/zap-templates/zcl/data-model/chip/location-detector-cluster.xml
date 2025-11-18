@@ -29,5 +29,12 @@ limitations under the License.
     <attribute side="server" code="0x0001" define="Distance"  type="int16u"                  default="0"            writable="true">Distance</attribute>
     <attribute side="server" code="0x0002" define="MediatorUID"  type="char_string" length="20" default="blescanner-000000" writable="true">MediatorUID</attribute>
     <attribute side="server" code="0x0003" define="LogEntry"  type="char_string" length="70" default="00000000-0000-0000-0000-000000000000000:00000:00000:blescanner-000000" writable="true">LogEntry</attribute>
+
+    <command source="client" code="0x00" name="RecordEntry" optional="false">
+      <description>
+        Command description for RecordEntry
+      </description>
+      <arg name="Entry"           type="char_string"/>
+    </command>
   </cluster>
 </configurator>

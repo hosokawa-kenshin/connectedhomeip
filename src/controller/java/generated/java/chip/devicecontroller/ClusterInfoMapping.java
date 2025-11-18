@@ -29358,6 +29358,23 @@ public class ClusterInfoMapping {
 
     Map<String, InteractionInfo> locationDetectorClusterInteractionInfoMap = new LinkedHashMap<>();
 
+    Map<String, CommandParameterInfo> locationDetectorrecordEntryCommandParams = new LinkedHashMap<String, CommandParameterInfo>();
+
+    CommandParameterInfo locationDetectorrecordEntryentryCommandParameterInfo = new CommandParameterInfo("entry", String.class, String.class);
+    locationDetectorrecordEntryCommandParams.put("entry",locationDetectorrecordEntryentryCommandParameterInfo);
+    InteractionInfo locationDetectorrecordEntryInteractionInfo = new InteractionInfo(
+      (cluster, callback, commandArguments) -> {
+        ((ChipClusters.LocationDetectorCluster) cluster)
+        .recordEntry((DefaultClusterCallback) callback
+        , (String)
+        commandArguments.get("entry")
+        );
+      },
+      () -> new DelegatedDefaultClusterCallback(),
+        locationDetectorrecordEntryCommandParams
+    );
+    locationDetectorClusterInteractionInfoMap.put("recordEntry", locationDetectorrecordEntryInteractionInfo);
+
     commandMap.put("locationDetector", locationDetectorClusterInteractionInfoMap);
 
     Map<String, InteractionInfo> entityLocationClusterInteractionInfoMap = new LinkedHashMap<>();

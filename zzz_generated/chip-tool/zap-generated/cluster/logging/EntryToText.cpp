@@ -5844,6 +5844,15 @@ char const * AcceptedCommandIdToText(chip::ClusterId cluster, chip::CommandId id
             return "Unknown";
         }
     }
+    case chip::app::Clusters::LocationDetector::Id: {
+        switch (id)
+        {
+        case chip::app::Clusters::LocationDetector::Commands::RecordEntry::Id:
+            return "RecordEntry";
+        default:
+            return "Unknown";
+        }
+    }
     case chip::app::Clusters::UnitTesting::Id: {
         switch (id)
         {

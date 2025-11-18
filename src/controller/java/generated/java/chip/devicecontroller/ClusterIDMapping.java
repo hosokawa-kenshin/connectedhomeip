@@ -17482,7 +17482,8 @@ public class ClusterIDMapping {
             }
         }
 
-        public enum Command {;
+        public enum Command {
+            RecordEntry(0L),;
             private final long id;
             Command(long id) {
                 this.id = id;
@@ -17500,7 +17501,24 @@ public class ClusterIDMapping {
                 }
                 throw new NoSuchFieldError();
             }
-        }@Override
+        }public enum RecordEntryCommandField {Entry(0),;
+                    private final int id;
+                    RecordEntryCommandField(int id) {
+                        this.id = id;
+                    }
+
+                    public int getID() {
+                        return id;
+                    }
+                    public static RecordEntryCommandField value(int id) throws NoSuchFieldError {
+                        for (RecordEntryCommandField field : RecordEntryCommandField.values()) {
+                        if (field.getID() == id) {
+                            return field;
+                        }
+                        }
+                        throw new NoSuchFieldError();
+                    }
+                }@Override
         public String getAttributeName(long id) throws NoSuchFieldError {
             return Attribute.value(id).toString();
         }

@@ -13333,6 +13333,13 @@ class ChipClusters:
         "clusterName": "LocationDetector",
         "clusterId": 0xFFF1FC01,
         "commands": {
+            0x00000000: {
+                "commandId": 0x00000000,
+                "commandName": "RecordEntry",
+                "args": {
+                    "entry": "str",
+                },
+            },
         },
         "attributes": {
             0x00000000: {

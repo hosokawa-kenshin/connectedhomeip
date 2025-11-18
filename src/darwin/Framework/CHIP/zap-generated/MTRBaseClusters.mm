@@ -103510,6 +103510,31 @@ public:
 
 @implementation MTRBaseClusterLocationDetector
 
+- (void)recordEntryWithParams:(MTRLocationDetectorClusterRecordEntryParams *)params completion:(MTRStatusCompletion)completion
+{
+    if (params == nil) {
+        params = [[MTRLocationDetectorClusterRecordEntryParams
+            alloc] init];
+    }
+
+    auto responseHandler = ^(id _Nullable response, NSError * _Nullable error) {
+        completion(error);
+    };
+
+    auto * timedInvokeTimeoutMs = params.timedInvokeTimeoutMs;
+
+    using RequestType = LocationDetector::Commands::RecordEntry::Type;
+    [self.device _invokeKnownCommandWithEndpointID:self.endpointID
+                                         clusterID:@(RequestType::GetClusterId())
+                                         commandID:@(RequestType::GetCommandId())
+                                    commandPayload:params
+                                timedInvokeTimeout:timedInvokeTimeoutMs
+                       serverSideProcessingTimeout:params.serverSideProcessingTimeout
+                                     responseClass:nil
+                                             queue:self.callbackQueue
+                                        completion:responseHandler];
+}
+
 - (void)readAttributeBeaconUUIDWithCompletion:(void (^)(NSString * _Nullable value, NSError * _Nullable error))completion
 {
     using TypeInfo = LocationDetector::Attributes::BeaconUUID::TypeInfo;
