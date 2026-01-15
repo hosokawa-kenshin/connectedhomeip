@@ -23,6 +23,7 @@
 namespace chip {
 namespace AddressResolve {
 namespace Impl {
+
 namespace {
 
 static constexpr System::Clock::Timeout kInvalidTimeout{ System::Clock::Timeout::max() };

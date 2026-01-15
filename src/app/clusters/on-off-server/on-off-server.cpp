@@ -48,6 +48,10 @@
 #include <platform/DiagnosticDataProvider.h>
 #include <platform/PlatformManager.h>
 
+#include <chrono>
+#include <fstream>
+#include <mutex>
+
 using namespace chip;
 using namespace chip::app::Clusters;
 using namespace chip::app::Clusters::OnOff;
@@ -56,6 +60,35 @@ using chip::Protocols::InteractionModel::Status;
 using BootReasonType = GeneralDiagnostics::BootReasonEnum;
 
 namespace {
+
+// Timing measurement for toggle command
+uint32_t sToggleCommandCounter = 0;
+std::mutex sTimingFileMutex;
+const char * kTimingCsvPath = "/tmp/toggle_timing.csv";
+
+// Write timing data to CSV file
+void WriteTimingToCSV(uint32_t commandId, long long recvMs, long long sendMs, long long procUs, const char * status, int newValue)
+{
+    std::lock_guard<std::mutex> lock(sTimingFileMutex);
+    std::ofstream file;
+
+    // Check if file exists to write header
+    bool fileExists = (access(kTimingCsvPath, F_OK) == 0);
+
+    file.open(kTimingCsvPath, std::ios::app);
+    if (file.is_open())
+    {
+        // Write header if file is new
+        if (!fileExists)
+        {
+            file << "ID,RECV_MS,SEND_MS,PROC_US,STATUS,NEW_VALUE\n";
+        }
+
+        // Write data
+        file << commandId << "," << recvMs << "," << sendMs << "," << procUs << "," << status << "," << newValue << "\n";
+        file.close();
+    }
+}
 
 #ifdef MATTER_DM_PLUGIN_MODE_BASE
 
@@ -609,9 +642,39 @@ bool OnOffServer::onCommand(app::CommandHandler * commandObj, const app::Concret
 bool OnOffServer::toggleCommand(app::CommandHandler * commandObj, const app::ConcreteCommandPath & commandPath)
 {
     MATTER_TRACE_SCOPE("ToggleCommand", "OnOff");
+
+    // Assign unique ID for this command and record receive time
+    uint32_t commandId = ++sToggleCommandCounter;
+    auto receiveTime   = std::chrono::system_clock::now();
+    auto receiveTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(receiveTime.time_since_epoch()).count();
+
+    ChipLogProgress(AppServer, "[TOGGLE_TIMING] ID=%u,RECV=%lld", commandId, static_cast<long long>(receiveTimeMs));
+
+    // Start timing for processing
+    auto startTime = std::chrono::steady_clock::now();
+
     Status status = setOnOffValue(commandPath.mEndpointId, Commands::Toggle::Id, false);
 
     commandObj->AddStatus(commandPath, status);
+
+    // Record send time and calculate processing time
+    auto sendTime     = std::chrono::system_clock::now();
+    auto sendTimeMs   = std::chrono::duration_cast<std::chrono::milliseconds>(sendTime.time_since_epoch()).count();
+    auto processingUs = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - startTime).count();
+
+    // Get current value for logging
+    bool currentValue = false;
+    Attributes::OnOff::Get(commandPath.mEndpointId, &currentValue);
+
+    const char * statusStr = (status == Status::Success) ? "OK" : "FAIL";
+    int newValueInt        = currentValue ? 1 : 0;
+
+    ChipLogProgress(AppServer, "[TOGGLE_TIMING] ID=%u,SEND=%lld,PROC_US=%lld,STATUS=%s,NEW_VALUE=%d", commandId,
+                    static_cast<long long>(sendTimeMs), static_cast<long long>(processingUs), statusStr, newValueInt);
+
+    // Write to CSV file
+    WriteTimingToCSV(commandId, receiveTimeMs, sendTimeMs, processingUs, statusStr, newValueInt);
+
     return true;
 }
 
@@ -972,8 +1035,8 @@ static inline void unreg(OnOffEffect * inst)
 
 OnOffEffect::OnOffEffect(chip::EndpointId endpoint, OffWithEffectTriggerCommand offWithEffectTrigger,
                          EffectIdentifierEnum effectIdentifier, uint8_t effectVariant) :
-    mEndpoint(endpoint),
-    mOffWithEffectTrigger(offWithEffectTrigger), mEffectIdentifier(effectIdentifier), mEffectVariant(effectVariant)
+    mEndpoint(endpoint), mOffWithEffectTrigger(offWithEffectTrigger), mEffectIdentifier(effectIdentifier),
+    mEffectVariant(effectVariant)
 {
     reg(this);
 };

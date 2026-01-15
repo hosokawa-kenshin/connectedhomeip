@@ -32,6 +32,9 @@
 #include <platform/internal/CHIPDeviceLayerInternal.h>
 #include <system/SystemLayer.h>
 
+// For mDNS timing measurement
+#include <chrono>
+
 using chip::Dnssd::DnssdServiceProtocol;
 using chip::Dnssd::kDnssdTypeMaxSize;
 using chip::Dnssd::TextEntry;
@@ -42,6 +45,12 @@ using std::chrono::seconds;
 using std::chrono::steady_clock;
 
 namespace {
+
+// Helper function to get current timestamp in milliseconds
+inline int64_t GetCurrentTimeMs()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
 
 AvahiProtocol ToAvahiProtocol(chip::Inet::IPAddressType addressType)
 {
@@ -407,7 +416,10 @@ void MdnsAvahi::HandleGroupState(AvahiEntryGroup * group, AvahiEntryGroupState s
 {
     switch (state)
     {
-    case AVAHI_ENTRY_GROUP_ESTABLISHED:
+    case AVAHI_ENTRY_GROUP_ESTABLISHED: {
+        int64_t establishedTime = GetCurrentTimeMs();
+        ChipLogProgress(DeviceLayer, "[MDNS_TIMING] SERVICE_ESTABLISHED: time=%lld", static_cast<long long>(establishedTime));
+    }
         ChipLogProgress(DeviceLayer, "Avahi group established");
         break;
     case AVAHI_ENTRY_GROUP_COLLISION:
@@ -427,6 +439,8 @@ void MdnsAvahi::HandleGroupState(AvahiEntryGroup * group, AvahiEntryGroupState s
 
 CHIP_ERROR MdnsAvahi::PublishService(const DnssdService & service, DnssdPublishCallback callback, void * context)
 {
+    int64_t publishStartTime = GetCurrentTimeMs();
+
     std::ostringstream keyBuilder;
     std::string key;
     std::string type = GetFullType(service.mType, service.mProtocol);
@@ -441,6 +455,9 @@ CHIP_ERROR MdnsAvahi::PublishService(const DnssdService & service, DnssdPublishC
 
     keyBuilder << service.mName << "." << type << service.mPort << "." << interface;
     key = keyBuilder.str();
+
+    ChipLogProgress(DeviceLayer, "[MDNS_TIMING] PUBLISH_START: service=%s, time=%lld", key.c_str(),
+                    static_cast<long long>(publishStartTime));
     ChipLogProgress(DeviceLayer, "PublishService %s", key.c_str());
     auto publishedgroups_it = mPublishedGroups.find(key);
     if (publishedgroups_it != mPublishedGroups.end())
@@ -719,7 +736,11 @@ void MdnsAvahi::HandleBrowse(AvahiServiceBrowser * browser, AvahiIfIndex interfa
         avahi_service_browser_free(browser);
         chip::Platform::Delete(context);
         break;
-    case AVAHI_BROWSER_NEW:
+    case AVAHI_BROWSER_NEW: {
+        int64_t receiveTime = GetCurrentTimeMs();
+        ChipLogProgress(DeviceLayer, "[MDNS_TIMING] BROWSE_RECV: name=%s, type=%s, time=%lld", name ? name : "(null)",
+                        type ? type : "(null)", static_cast<long long>(receiveTime));
+    }
         ChipLogProgress(DeviceLayer, "Avahi browse: cache new");
         if (context->mStopped.load())
         {
@@ -924,7 +945,12 @@ void MdnsAvahi::HandleResolve(AvahiServiceResolver * resolver, AvahiIfIndex inte
         ChipLogError(DeviceLayer, "Avahi resolve failed");
         context->mCallback(context->mContext, nullptr, Span<Inet::IPAddress>(), CHIP_ERROR_INTERNAL);
         break;
-    case AVAHI_RESOLVER_FOUND:
+    case AVAHI_RESOLVER_FOUND: {
+        int64_t resolveTime = GetCurrentTimeMs();
+        ChipLogProgress(DeviceLayer, "[MDNS_TIMING] RESOLVE_FOUND: name=%s, type=%s, host=%s, port=%u, time=%lld",
+                        name ? name : "(null)", type ? type : "(null)", host_name ? host_name : "(null)", port,
+                        static_cast<long long>(resolveTime));
+    }
         DnssdService result = {};
 
         ChipLogProgress(DeviceLayer, "Avahi resolve found");

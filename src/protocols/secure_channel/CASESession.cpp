@@ -30,6 +30,8 @@
 #include <memory>
 #include <string.h>
 
+#include <chrono>
+#include <fstream>
 #include <lib/core/CHIPEncoding.h>
 #include <lib/core/CHIPSafeCasts.h>
 #include <lib/support/CHIPMem.h>
@@ -49,6 +51,87 @@
 #include <tracing/macros.h>
 #include <tracing/metric_event.h>
 #include <transport/SessionManager.h>
+
+namespace chip {
+
+// Global variables to store CASE handshake timestamps
+static std::mutex g_caseTimingMutex;
+
+// Server side timestamps (responder)
+int64_t g_caseSigma1RecvTimeMs        = 0;
+static int64_t g_caseSigma2SentTimeMs = 0;
+static int64_t g_caseSigma3RecvTimeMs = 0;
+
+// Client side timestamps (initiator)
+static int64_t g_caseSigma1SentTimeMs     = 0;
+static int64_t g_caseSigma2RecvTimeMs     = 0;
+static int64_t g_caseSigma3SentTimeMs     = 0;
+static int64_t g_caseSessionEstablishedMs = 0;
+
+// Helper function to write CASE Server timing to CSV
+static void WriteCaseServerTimingToCsv()
+{
+    const char * csvPath = "./case_server_timing.csv";
+
+    std::lock_guard<std::mutex> lock(g_caseTimingMutex);
+
+    // Check if file exists
+    bool fileExists = false;
+    std::ifstream checkFile(csvPath);
+    if (checkFile.good())
+    {
+        fileExists = true;
+    }
+    checkFile.close();
+
+    std::ofstream csvFile(csvPath, std::ios::app);
+    if (!csvFile.is_open())
+    {
+        return;
+    }
+
+    if (!fileExists)
+    {
+        csvFile << "Sigma1_Recv_ms,Sigma2_Sent_ms,Sigma3_Recv_ms" << std::endl;
+    }
+
+    csvFile << g_caseSigma1RecvTimeMs << "," << g_caseSigma2SentTimeMs << "," << g_caseSigma3RecvTimeMs << std::endl;
+    csvFile.close();
+}
+
+// Helper function to write CASE Client timing to CSV
+static void WriteCaseClientTimingToCsv()
+{
+    const char * csvPath = "./case_client_timing.csv";
+
+    std::lock_guard<std::mutex> lock(g_caseTimingMutex);
+
+    // Check if file exists
+    bool fileExists = false;
+    std::ifstream checkFile(csvPath);
+    if (checkFile.good())
+    {
+        fileExists = true;
+    }
+    checkFile.close();
+
+    std::ofstream csvFile(csvPath, std::ios::app);
+    if (!csvFile.is_open())
+    {
+        return;
+    }
+
+    if (!fileExists)
+    {
+        csvFile << "Sigma1_Sent_ms,Sigma2_Recv_ms,Sigma3_Sent_ms,StatusReport_Received_ms" << std::endl;
+    }
+
+    csvFile << g_caseSigma1SentTimeMs << "," << g_caseSigma2RecvTimeMs << "," << g_caseSigma3SentTimeMs << ","
+            << g_caseSessionEstablishedMs << std::endl;
+    csvFile.close();
+}
+
+} // namespace chip
 
 namespace {
 
@@ -883,9 +966,14 @@ CHIP_ERROR CASESession::SendSigma1()
 #if CHIP_PROGRESS_LOGGING
     const auto localMRPConfig = mLocalMRPConfig.Value();
 #endif // CHIP_PROGRESS_LOGGING
+
     ChipLogProgress(SecureChannel, "Sent Sigma1 msg to " ChipLogFormatScopedNodeId " [II:%" PRIu32 "ms AI:%" PRIu32 "ms AT:%ums]",
                     ChipLogValueScopedNodeId(GetPeer()), localMRPConfig.mIdleRetransTimeout.count(),
                     localMRPConfig.mActiveRetransTimeout.count(), localMRPConfig.mActiveThresholdTime.count());
+
+    // Record Sigma1 sent timestamp (Client side)
+    g_caseSigma1SentTimeMs =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     mDelegate->OnSessionEstablishmentStarted();
 
@@ -1264,6 +1352,10 @@ CHIP_ERROR CASESession::SendSigma2()
     ChipLogProgress(SecureChannel, "Sent Sigma2 msg");
     MATTER_TRACE_COUNTER("Sigma2");
 
+    // Record Sigma2 sent timestamp
+    g_caseSigma2SentTimeMs =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
     return CHIP_NO_ERROR;
 }
 
@@ -1389,6 +1481,10 @@ CHIP_ERROR CASESession::HandleSigma2(System::PacketBufferHandle && msg)
     uint16_t responderSessionId;
 
     ChipLogProgress(SecureChannel, "Received Sigma2 msg");
+
+    // Record Sigma2 received timestamp (Client side)
+    g_caseSigma2RecvTimeMs =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     FabricId fabricId = kUndefinedFabricId;
     {
@@ -1714,6 +1810,11 @@ CHIP_ERROR CASESession::SendSigma3c(SendSigma3Data & data, CHIP_ERROR status)
 
     ChipLogProgress(SecureChannel, "Sent Sigma3 msg");
 
+    // Record Sigma3 sent timestamp and write to CSV (Client side)
+    g_caseSigma3SentTimeMs =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    // WriteCaseClientTimingToCsv();
+
     {
         MutableByteSpan messageDigestSpan(mMessageDigest);
         SuccessOrExit(err = mCommissioningHash.Finish(messageDigestSpan));
@@ -1762,6 +1863,11 @@ CHIP_ERROR CASESession::HandleSigma3a(System::PacketBufferHandle && msg)
     ChipLogProgress(SecureChannel, "Received Sigma3 msg");
     MATTER_TRACE_COUNTER("Sigma3");
     MATTER_LOG_METRIC_END(kMetricDeviceCASESessionSigma2, err);
+
+    // Record Sigma3 receive timestamp and write to CSV
+    g_caseSigma3RecvTimeMs =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    WriteCaseServerTimingToCsv();
 
     auto helper = WorkHelper<HandleSigma3Data>::Create(*this, &HandleSigma3b, &CASESession::HandleSigma3c);
     VerifyOrExit(helper, err = CHIP_ERROR_NO_MEMORY);
@@ -2115,6 +2221,13 @@ CHIP_ERROR CASESession::SetEffectiveTime()
 void CASESession::OnSuccessStatusReport()
 {
     ChipLogProgress(SecureChannel, "Success status report received. Session was established");
+
+    // Record session established timestamp (Client side)
+    g_caseSessionEstablishedMs =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+    // Write CASE client timing to CSV
+    WriteCaseClientTimingToCsv();
 
     if (mSessionResumptionStorage != nullptr)
     {

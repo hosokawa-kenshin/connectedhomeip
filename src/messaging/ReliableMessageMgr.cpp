@@ -24,6 +24,12 @@
 #include <errno.h>
 #include <inttypes.h>
 
+#include <algorithm>
+#include <chrono>
+#include <fstream>
+#include <mutex>
+#include <vector>
+
 #include <app/icd/server/ICDServerConfig.h>
 #include <lib/support/BitFlags.h>
 #include <lib/support/CHIPFaultInjection.h>
@@ -289,12 +295,75 @@ void ReliableMessageMgr::StartRetransmision(RetransTableEntry * entry)
     StartTimer();
 }
 
+// Global mutex and function for ACK timing
+static std::mutex g_ackTimingMutex;
+
+static void WriteAckTimingToCsv(int64_t ackReceivedTimeMs)
+{
+    const char * csvPath = "./case_server_timing.csv";
+
+    std::lock_guard<std::mutex> lock(g_ackTimingMutex);
+
+    // Read existing content
+    std::vector<std::string> lines;
+    std::ifstream inFile(csvPath);
+    if (inFile.is_open())
+    {
+        std::string line;
+        while (std::getline(inFile, line))
+        {
+            lines.push_back(line);
+        }
+        inFile.close();
+    }
+
+    // Update header is NOT needed here - it should already be added by WriteCommandResponseSentTimingToCsv()
+    // We just need to verify the file exists
+    if (lines.empty())
+    {
+        // File doesn't exist or is empty, skip (should not happen in normal flow)
+        return;
+    }
+
+    // Add ACK received timing to last data line
+    if (lines.size() > 1)
+    {
+        std::string & lastLine = lines[lines.size() - 1];
+        size_t commaCount      = std::count(lastLine.begin(), lastLine.end(), ',');
+
+        // Only record ACK if StatusReport_Sent_ms exists (commaCount == 3)
+        // This prevents recording ACKs for CASE messages
+        if (commaCount == 3)
+        {
+            // Has StatusReport_Sent_ms, need to add ACK_Recv_ms
+            lastLine += "," + std::to_string(ackReceivedTimeMs);
+        }
+        // Otherwise, this is a CASE ACK or unexpected format - do nothing
+    }
+
+    // Write back to file
+    std::ofstream outFile(csvPath);
+    if (outFile.is_open())
+    {
+        for (const auto & line : lines)
+        {
+            outFile << line << std::endl;
+        }
+        outFile.close();
+    }
+}
+
 bool ReliableMessageMgr::CheckAndRemRetransTable(ReliableMessageContext * rc, uint32_t ackMessageCounter)
 {
     bool removed = false;
     mRetransTable.ForEachActiveObject([&](auto * entry) {
         if (entry->ec->GetReliableMessageContext() == rc && entry->retainedBuf.GetMessageCounter() == ackMessageCounter)
         {
+            // Record ACK received timing
+            auto now   = std::chrono::system_clock::now();
+            auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+            WriteAckTimingToCsv(nowMs);
+
             // Clear the entry from the retransmision table.
             ClearRetransTable(*entry);
 

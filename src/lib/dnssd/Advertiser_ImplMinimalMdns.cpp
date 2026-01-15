@@ -17,6 +17,7 @@
 
 #include "Advertiser.h"
 
+#include <chrono>
 #include <inttypes.h>
 #include <stdio.h>
 
@@ -28,6 +29,14 @@
 #include <lib/dnssd/Advertiser_ImplMinimalMdnsAllocator.h>
 #include <lib/dnssd/minimal_mdns/AddressPolicy.h>
 #include <lib/dnssd/minimal_mdns/ResponseSender.h>
+
+// Helper function to get current timestamp in milliseconds
+namespace {
+inline int64_t GetCurrentTimeMs()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
+} // namespace
 #include <lib/dnssd/minimal_mdns/Server.h>
 #include <lib/dnssd/minimal_mdns/core/FlatAllocatedQName.h>
 #include <lib/dnssd/minimal_mdns/responders/IP.h>
@@ -343,6 +352,9 @@ void AdvertiserMinMdns::OnMdnsPacketData(const BytesRange & data, const chip::In
 
 void AdvertiserMinMdns::OnQuery(const QueryData & data)
 {
+    auto queryProcessStartTime      = std::chrono::steady_clock::now();
+    int64_t queryProcessStartTimeMs = GetCurrentTimeMs();
+
     if (mCurrentSource == nullptr)
     {
         ChipLogError(Discovery, "INTERNAL CONSISTENCY ERROR: missing query source");
@@ -352,7 +364,21 @@ void AdvertiserMinMdns::OnQuery(const QueryData & data)
     LogQuery(data);
 
     const ResponseConfiguration defaultResponseConfiguration;
-    CHIP_ERROR err = mResponseSender.Respond(mMessageId, data, mCurrentSource, defaultResponseConfiguration);
+    auto respondStartTime = std::chrono::steady_clock::now();
+    CHIP_ERROR err        = mResponseSender.Respond(mMessageId, data, mCurrentSource, defaultResponseConfiguration);
+    auto respondEndTime   = std::chrono::steady_clock::now();
+
+    int64_t respondTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(respondEndTime - respondStartTime).count();
+    int64_t totalTimeUs   = std::chrono::duration_cast<std::chrono::microseconds>(respondEndTime - queryProcessStartTime).count();
+
+    // 1ms以上かかった場合のみログ出力（ノイズ削減）
+    if (totalTimeUs >= 1000)
+    {
+        ChipLogProgress(Discovery, "[ADVERTISER_TIMING] SLOW_QUERY: msgId=%u, time=%lld, respondUs=%lld, totalUs=%lld, status=%s",
+                        mMessageId, static_cast<long long>(queryProcessStartTimeMs), static_cast<long long>(respondTimeUs),
+                        static_cast<long long>(totalTimeUs), (err == CHIP_NO_ERROR) ? "OK" : "FAIL");
+    }
+
     if (err != CHIP_NO_ERROR)
     {
         ChipLogError(Discovery, "Failed to reply to query: %" CHIP_ERROR_FORMAT, err.Format());

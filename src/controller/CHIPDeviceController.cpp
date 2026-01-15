@@ -70,6 +70,7 @@
 #include <transport/raw/WiFiPAF.h>
 #endif
 
+#include <chrono>
 #include <errno.h>
 #include <inttypes.h>
 #include <memory>
@@ -1871,6 +1872,7 @@ void DeviceCommissioner::OnNodeDiscovered(const chip::Dnssd::DiscoveredNodeData 
         mUdcServer->OnCommissionableNodeFound(nodeData);
     }
 #endif // CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONER_DISCOVERY
+
     AbstractDnssdDiscoveryController::OnNodeDiscovered(nodeData);
     mSetUpCodePairer.NotifyCommissionableDeviceDiscovered(nodeData);
 }

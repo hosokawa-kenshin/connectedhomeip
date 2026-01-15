@@ -36,9 +36,94 @@
 #include <transport/CryptoContext.h>
 #include <transport/SecureSession.h>
 
+#include <algorithm>
+#include <chrono>
+#include <fstream>
+#include <mutex>
+#include <vector>
+
 namespace chip {
 
 class SessionManager;
+
+// Helper function to write StatusReport sent timing to CSV
+inline void WriteStatusReportSentTimingToCsv(int64_t statusReportSentTimeMs)
+{
+    static std::mutex g_statusReportTimingMutex;
+    const char * csvPath = "./case_server_timing.csv";
+
+    std::lock_guard<std::mutex> lock(g_statusReportTimingMutex);
+
+    // Read existing content
+    std::vector<std::string> lines;
+    std::ifstream inFile(csvPath);
+    if (inFile.is_open())
+    {
+        std::string line;
+        while (std::getline(inFile, line))
+        {
+            lines.push_back(line);
+        }
+        inFile.close();
+    }
+
+    // Update header if needed (preserve existing columns)
+    bool needsHeader = lines.empty();
+    if (needsHeader)
+    {
+        // If file doesn't exist, create with all columns
+        lines.push_back("Sigma1_Recv_ms,Sigma2_Sent_ms,Sigma3_Recv_ms,StatusReport_Sent_ms");
+    }
+    else if (lines.size() > 0 && lines[0].find("StatusReport_Sent_ms") == std::string::npos)
+    {
+        // Add StatusReport_Sent_ms column if not present
+        lines[0] += ",StatusReport_Sent_ms";
+    }
+
+    // Add StatusReport sent timing to last data line
+    if (lines.size() > 1)
+    {
+        // Check if the last line already has StatusReport_Sent_ms
+        std::string & lastLine = lines[lines.size() - 1];
+        size_t commaCount      = std::count(lastLine.begin(), lastLine.end(), ',');
+
+        // Expected: Sigma1_Recv_ms,Sigma2_Sent_ms,Sigma3_Recv_ms (2 commas)
+        // With StatusReport_Sent_ms: 3 commas
+        if (commaCount == 2)
+        {
+            // CASE data only, append StatusReport_Sent_ms
+            lastLine += "," + std::to_string(statusReportSentTimeMs);
+        }
+        else if (commaCount < 2)
+        {
+            // Need to add more commas to reach StatusReport_Sent_ms position
+            while (commaCount < 2)
+            {
+                lastLine += ",0";
+                commaCount++;
+            }
+            lastLine += "," + std::to_string(statusReportSentTimeMs);
+        }
+        // If commaCount >= 3, already has StatusReport_Sent_ms, don't append
+    }
+    else if (lines.size() == 1)
+    {
+        // Only header exists, create new data line with placeholders
+        // Format: Sigma1_Recv_ms,Sigma2_Sent_ms,Sigma3_Recv_ms,StatusReport_Sent_ms
+        lines.push_back("0,0,0," + std::to_string(statusReportSentTimeMs));
+    }
+
+    // Write back to file
+    std::ofstream outFile(csvPath);
+    if (outFile.is_open())
+    {
+        for (const auto & line : lines)
+        {
+            outFile << line << std::endl;
+        }
+        outFile.close();
+    }
+}
 
 class DLL_EXPORT PairingSession : public SessionDelegate
 {
@@ -164,6 +249,11 @@ protected:
         {
             ChipLogError(SecureChannel, "Failed to send status report message: %" CHIP_ERROR_FORMAT, err.Format());
         }
+
+        // Record StatusReport sent timestamp AFTER sending
+        auto now   = std::chrono::system_clock::now();
+        auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        WriteStatusReportSentTimingToCsv(nowMs);
     }
 
     CHIP_ERROR HandleStatusReport(System::PacketBufferHandle && msg, bool successExpected)

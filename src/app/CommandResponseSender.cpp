@@ -19,9 +19,178 @@
 #include "InteractionModelEngine.h"
 #include "messaging/ExchangeContext.h"
 
+#include <algorithm>
+#include <chrono>
+#include <fstream>
+#include <mutex>
+#include <vector>
+
 namespace chip {
 namespace app {
 using Status = Protocols::InteractionModel::Status;
+
+// Mutex for CSV file access
+static std::mutex g_commandResponseTimingMutex;
+
+// Helper function to write CommandResponse sent timing to CSV
+static void WriteCommandResponseSentTimingToCsv(int64_t commandResponseSentTimeMs)
+{
+    const char * csvPath = "./case_server_timing.csv";
+
+    std::lock_guard<std::mutex> lock(g_commandResponseTimingMutex);
+
+    // Read existing content
+    std::vector<std::string> lines;
+    std::ifstream inFile(csvPath);
+    if (inFile.is_open())
+    {
+        std::string line;
+        while (std::getline(inFile, line))
+        {
+            lines.push_back(line);
+        }
+        inFile.close();
+    }
+
+    // Update header if needed (preserve existing columns)
+    bool needsHeader = lines.empty();
+    if (needsHeader)
+    {
+        // If file doesn't exist, create with all columns including ACK_Recv_ms
+        lines.push_back("Sigma1_Recv_ms,Sigma2_Sent_ms,Sigma3_Recv_ms,StatusReport_Sent_ms,ACK_Recv_ms");
+    }
+    else if (lines.size() > 0 && lines[0].find("StatusReport_Sent_ms") == std::string::npos)
+    {
+        // Add both StatusReport_Sent_ms and ACK_Recv_ms columns if not present
+        lines[0] += ",StatusReport_Sent_ms,ACK_Recv_ms";
+    }
+    else if (lines.size() > 0 && lines[0].find("ACK_Recv_ms") == std::string::npos)
+    {
+        // Add ACK_Recv_ms column if StatusReport_Sent_ms exists but ACK_Recv_ms doesn't
+        lines[0] += ",ACK_Recv_ms";
+    }
+
+    // Add CommandResponse sent timing to last data line
+    if (lines.size() > 1)
+    {
+        // Check if the last line already has StatusReport_Sent_ms
+        std::string & lastLine = lines[lines.size() - 1];
+        size_t commaCount      = std::count(lastLine.begin(), lastLine.end(), ',');
+
+        // Expected states:
+        // - After CASE: "xxx,yyy,zzz" (2 values, 2 commas) -> Need to add StatusReport_Sent_ms
+        // - After previous StatusReport: "xxx,yyy,zzz,www" (3 values, 3 commas) -> Already has it, skip
+
+        if (commaCount == 2)
+        {
+            // CASE data only: Sigma1_Recv_ms,Sigma2_Sent_ms,Sigma3_Recv_ms
+            // Append StatusReport_Sent_ms
+            lastLine += "," + std::to_string(commandResponseSentTimeMs);
+        }
+        else if (commaCount >= 3)
+        {
+            // Already has StatusReport_Sent_ms or more columns, don't append
+            // This happens on subsequent calls
+        }
+        else
+        {
+            // Unexpected format, pad with zeros to reach correct position
+            while (commaCount < 2)
+            {
+                lastLine += ",0";
+                commaCount++;
+            }
+            lastLine += "," + std::to_string(commandResponseSentTimeMs);
+        }
+    }
+    else if (lines.size() == 1)
+    {
+        // Only header exists, create new data line with placeholders
+        // Format: Sigma1_Recv_ms,Sigma2_Sent_ms,Sigma3_Recv_ms,StatusReport_Sent_ms
+        lines.push_back("0,0,0," + std::to_string(commandResponseSentTimeMs));
+    }
+
+    // Write back to file
+    std::ofstream outFile(csvPath);
+    if (outFile.is_open())
+    {
+        for (const auto & line : lines)
+        {
+            outFile << line << std::endl;
+        }
+        outFile.close();
+    }
+}
+
+// Helper function to write ACK received timing to CSV
+static void WriteAckReceivedTimingToCsv(int64_t ackReceivedTimeMs)
+{
+    const char * csvPath = "./case_server_timing.csv";
+
+    std::lock_guard<std::mutex> lock(g_commandResponseTimingMutex);
+
+    // Read existing content
+    std::vector<std::string> lines;
+    std::ifstream inFile(csvPath);
+    if (inFile.is_open())
+    {
+        std::string line;
+        while (std::getline(inFile, line))
+        {
+            lines.push_back(line);
+        }
+        inFile.close();
+    }
+
+    // Update header if needed (preserve existing columns)
+    if (lines.size() > 0 && lines[0].find("ACK_Recv_ms") == std::string::npos)
+    {
+        // Add ACK_Recv_ms column if not present
+        lines[0] += ",ACK_Recv_ms";
+    }
+
+    // Add ACK received timing to last data line
+    if (lines.size() > 1)
+    {
+        std::string & lastLine = lines[lines.size() - 1];
+        size_t commaCount      = std::count(lastLine.begin(), lastLine.end(), ',');
+
+        // Expected states:
+        // - After StatusReport_Sent: "xxx,yyy,zzz,www" (3 commas) -> Need to add ACK_Recv_ms
+        // - After previous ACK: "xxx,yyy,zzz,www,vvv" (4 commas) -> Already has it, skip
+
+        if (commaCount == 3)
+        {
+            // Has StatusReport_Sent_ms, need to add ACK_Recv_ms
+            lastLine += "," + std::to_string(ackReceivedTimeMs);
+        }
+        else if (commaCount >= 4)
+        {
+            // Already has ACK_Recv_ms, don't append
+        }
+        else
+        {
+            // Unexpected format, pad with zeros to reach correct position
+            while (commaCount < 3)
+            {
+                lastLine += ",0";
+                commaCount++;
+            }
+            lastLine += "," + std::to_string(ackReceivedTimeMs);
+        }
+    }
+
+    // Write back to file
+    std::ofstream outFile(csvPath);
+    if (outFile.is_open())
+    {
+        for (const auto & line : lines)
+        {
+            outFile << line << std::endl;
+        }
+        outFile.close();
+    }
+}
 
 CHIP_ERROR CommandResponseSender::OnMessageReceived(Messaging::ExchangeContext * apExchangeContext,
                                                     const PayloadHeader & aPayloadHeader, System::PacketBufferHandle && aPayload)
@@ -32,6 +201,12 @@ CHIP_ERROR CommandResponseSender::OnMessageReceived(Messaging::ExchangeContext *
     if (mState == State::AwaitingStatusResponse &&
         aPayloadHeader.HasMessageType(Protocols::InteractionModel::MsgType::StatusResponse))
     {
+        // Record ACK received timing
+        auto now   = std::chrono::system_clock::now();
+        auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        ChipLogProgress(DataManagement, "ACK received, recording timing: %lld ms", static_cast<long long>(nowMs));
+        WriteAckReceivedTimingToCsv(nowMs);
+
         CHIP_ERROR statusError = CHIP_NO_ERROR;
         err                    = StatusResponse::ProcessStatusResponse(std::move(aPayload), statusError);
         VerifyOrExit(err == CHIP_NO_ERROR, failureStatusToSend.SetValue(Status::InvalidAction));
@@ -157,8 +332,15 @@ CHIP_ERROR CommandResponseSender::SendCommandResponse()
         mExchangeCtx->UseSuggestedResponseTimeout(app::kExpectedIMProcessingTime);
     }
 
+    ChipLogProgress(InteractionModel, "Sending status report. Protocol code %d", 0);
+
     ReturnErrorOnFailure(mExchangeCtx->SendMessage(Protocols::InteractionModel::MsgType::InvokeCommandResponse,
                                                    std::move(commandResponsePayload), sendFlag));
+
+    // Record CommandResponse sent timestamp AFTER sending
+    auto now   = std::chrono::system_clock::now();
+    auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    WriteCommandResponseSentTimingToCsv(nowMs);
 
     return CHIP_NO_ERROR;
 }
@@ -196,6 +378,15 @@ void CommandResponseSender::MoveToState(const State aTargetState)
 
 void CommandResponseSender::Close()
 {
+    // Record ACK received timing when closing (ACK was received to reach this point)
+    if (mState == State::AwaitingStatusResponse)
+    {
+        auto now   = std::chrono::system_clock::now();
+        auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        ChipLogProgress(DataManagement, "ACK received (Close), recording timing: %lld ms", static_cast<long long>(nowMs));
+        WriteAckReceivedTimingToCsv(nowMs);
+    }
+
     MoveToState(State::AllInvokeResponsesSent);
     mpCallback->OnDone(*this);
 }

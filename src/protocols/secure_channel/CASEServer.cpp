@@ -17,6 +17,7 @@
 
 #include <protocols/secure_channel/CASEServer.h>
 
+#include <chrono>
 #include <lib/core/CHIPError.h>
 #include <lib/support/CHIPFaultInjection.h>
 #include <lib/support/CodeUtils.h>
@@ -134,6 +135,11 @@ CHIP_ERROR CASEServer::OnMessageReceived(Messaging::ExchangeContext * ec, const 
     }
 
     ChipLogProgress(Inet, "CASE Server received Sigma1 message %s EC %p", ". Starting handshake.", ec);
+
+    // Record Sigma1 receive timestamp
+    extern int64_t g_caseSigma1RecvTimeMs;
+    g_caseSigma1RecvTimeMs =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     CHIP_ERROR err = InitCASEHandshake(ec);
     SuccessOrExit(err);

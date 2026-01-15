@@ -30,6 +30,7 @@
 #include <app/InteractionModelEngine.h>
 #include <transport/SecureSession.h>
 
+#include <chrono>
 #include <lib/address_resolve/AddressResolve.h>
 #include <lib/core/CHIPCore.h>
 #include <lib/core/CHIPEncoding.h>
@@ -47,6 +48,9 @@ using chip::AddressResolve::ResolveResult;
 using namespace chip::Tracing;
 
 namespace chip {
+
+// Global variable to store mDNS resolution complete timestamp
+std::chrono::high_resolution_clock::time_point g_lastMdnsResolutionCompleteTime;
 
 void OperationalSessionSetup::MoveToState(State aTargetState)
 {
@@ -216,6 +220,9 @@ void OperationalSessionSetup::UpdateDeviceData(const ResolveResult & result)
 #if CHIP_DETAIL_LOGGING
     char peerAddrBuff[Transport::PeerAddress::kMaxToStringSize];
     addr.ToString(peerAddrBuff);
+
+    // Record mDNS resolution complete timestamp
+    g_lastMdnsResolutionCompleteTime = std::chrono::high_resolution_clock::now();
 
     ChipLogDetail(Discovery, "OperationalSessionSetup[%u:" ChipLogFormatX64 "]: Updating device address to %s while in state %d",
                   mPeerId.GetFabricIndex(), ChipLogValueX64(mPeerId.GetNodeId()), peerAddrBuff, static_cast<int>(mState));

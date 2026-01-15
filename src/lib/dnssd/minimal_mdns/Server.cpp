@@ -17,7 +17,11 @@
 
 #include "Server.h"
 
+#include <chrono>
 #include <errno.h>
+#include <fstream>
+#include <mutex>
+#include <string>
 #include <utility>
 
 #include <lib/dnssd/minimal_mdns/core/DnsHeader.h>
@@ -26,6 +30,51 @@
 namespace mdns {
 namespace Minimal {
 namespace {
+
+// Helper function to get current timestamp in milliseconds
+inline int64_t GetCurrentTimeMs()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+// CSV helpers for recording packets to/from a specific IP
+static std::mutex sMdnsCsvMutex;
+static std::string GetMdnsCsvPath()
+{
+    std::string exePath;
+#ifdef __linux__
+    char buf[PATH_MAX];
+    ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
+    if (len != -1)
+    {
+        buf[len] = '\0';
+        exePath  = buf;
+        // Get just the filename without path
+        size_t pos = exePath.find_last_of('/');
+        if (pos != std::string::npos)
+        {
+            exePath = exePath.substr(pos + 1);
+        }
+    }
+#endif
+    if (exePath.empty())
+    {
+        exePath = "mdns_log";
+    }
+    return "./" + exePath + ".csv";
+}
+
+static const std::string kMdnsCsvPath = GetMdnsCsvPath();
+
+static void WriteMdnsCsvEntry(const char * dir, int64_t tsMs, int size, int interfacePlatform, const char * addrStr, uint16_t port)
+{
+    std::lock_guard<std::mutex> lock(sMdnsCsvMutex);
+    std::ofstream ofs(kMdnsCsvPath, std::ios::app);
+    if (!ofs)
+        return;
+    // CSV: DIR,TS_MS,SIZE,IF,ADDR,PORT
+    ofs << dir << ',' << tsMs << ',' << size << ',' << interfacePlatform << ',' << addrStr << ',' << port << '\n';
+}
 
 class ShutdownOnError
 {
@@ -91,8 +140,7 @@ class InterfaceTypeFilterDelegate : public ServerBase::BroadcastSendDelegate
 public:
     InterfaceTypeFilterDelegate(chip::Inet::InterfaceId interface, chip::Inet::IPAddressType type,
                                 ServerBase::BroadcastSendDelegate * child) :
-        mInterface(interface),
-        mAddressType(type), mChild(child)
+        mInterface(interface), mAddressType(type), mChild(child)
     {}
 
     chip::Inet::UDPEndPoint * Accept(ServerBase::EndpointInfo * info) override
@@ -292,7 +340,23 @@ CHIP_ERROR ServerBase::DirectSend(chip::System::PacketBufferHandle && data, cons
             return chip::Loop::Continue;
         }
 
-        err = info->mListenUdp->SendTo(addr, port, std::move(data));
+        // capture size before moving the buffer into SendTo
+        int pktSize = static_cast<int>(data->DataLength());
+        err         = info->mListenUdp->SendTo(addr, port, std::move(data));
+
+        if (err == CHIP_NO_ERROR)
+        {
+            char addrStr[INET6_ADDRSTRLEN];
+            addr.ToString(addrStr, sizeof(addrStr));
+            ChipLogProgress(Discovery, "[MINIMAL_MDNS_TIMING] UNICAST_SEND: to=%s:%u, interface=%d, time=%lld", addrStr, port,
+                            interface.GetPlatformInterface(), static_cast<long long>(GetCurrentTimeMs()));
+            // If we're sending to the target IP, record CSV entry
+            if (strncmp(addrStr, "fe80::9e6b:ff:fe2d:feb4", 23) == 0 || strncmp(addrStr, "192.168.1.55", 13) == 0)
+            {
+                WriteMdnsCsvEntry("SEND", GetCurrentTimeMs(), pktSize, interface.GetPlatformInterface(), addrStr, port);
+            }
+        }
+
         return chip::Loop::Break;
     });
 
@@ -331,6 +395,10 @@ CHIP_ERROR ServerBase::BroadcastSend(chip::System::PacketBufferHandle && data, u
 
 CHIP_ERROR ServerBase::BroadcastImpl(chip::System::PacketBufferHandle && data, uint16_t port, BroadcastSendDelegate * delegate)
 {
+    int64_t sendTime = GetCurrentTimeMs();
+    ChipLogProgress(Discovery, "[MINIMAL_MDNS_TIMING] BROADCAST_SEND: size=%d, port=%u, time=%lld",
+                    static_cast<int>(data->DataLength()), port, static_cast<long long>(sendTime));
+
     // Broadcast requires sending data multiple times, each of which may error
     // out, yet broadcast only has a single error code.
     //
@@ -428,6 +496,8 @@ CHIP_ERROR ServerBase::BroadcastImpl(chip::System::PacketBufferHandle && data, u
 void ServerBase::OnUdpPacketReceived(chip::Inet::UDPEndPoint * endPoint, chip::System::PacketBufferHandle && buffer,
                                      const chip::Inet::IPPacketInfo * info)
 {
+    int64_t receiveTime = GetCurrentTimeMs();
+
     ServerBase * srv = static_cast<ServerBase *>(endPoint->mAppState);
     if (!srv->mDelegate)
     {
@@ -448,12 +518,72 @@ void ServerBase::OnUdpPacketReceived(chip::Inet::UDPEndPoint * endPoint, chip::S
         // in more replies than one would expect.
         if (endPoint->GetBoundInterface() == info->Interface)
         {
-            srv->mDelegate->OnQuery(data, info);
+            // Only log and process Matter-related queries
+            // Check for Matter service types: _matter._tcp, _matterc._udp, or _chip._tcp (legacy)
+            bool isMatterQuery         = false;
+            const uint8_t * packetData = data.Start();
+            size_t packetSize          = data.Size();
+
+            for (size_t i = 0; i + 7 < packetSize; i++)
+            {
+                if (memcmp(&packetData[i], "_matter", 7) == 0 || (i + 5 < packetSize && memcmp(&packetData[i], "_chip", 5) == 0))
+                {
+                    isMatterQuery = true;
+                    break;
+                }
+            }
+
+            // Only process Matter-related queries - ignore all other mDNS traffic
+            if (isMatterQuery)
+            {
+                char addrStr[INET6_ADDRSTRLEN];
+                info->SrcAddress.ToString(addrStr, sizeof(addrStr));
+                ChipLogProgress(Discovery, "[MINIMAL_MDNS_TIMING] MATTER_QUERY_RECV: size=%d, interface=%d, from=%s:%u, time=%lld",
+                                static_cast<int>(data.Size()), info->Interface.GetPlatformInterface(), addrStr, info->SrcPort,
+                                static_cast<long long>(receiveTime));
+                // If packet is from the target IP, write CSV entry
+                if (strncmp(addrStr, "fe80::9e6b:ff:fe2d:feb4", 23) == 0 || strncmp(addrStr, "192.168.1.55", 13) == 0)
+
+                {
+                    WriteMdnsCsvEntry("RECVQuery", receiveTime, static_cast<int>(data.Size()),
+                                      info->Interface.GetPlatformInterface(), addrStr, info->SrcPort);
+                }
+                srv->mDelegate->OnQuery(data, info);
+            }
         }
     }
     else
     {
-        srv->mDelegate->OnResponse(data, info);
+        // Only log and process Matter-related responses
+        bool isMatterResponse      = false;
+        const uint8_t * packetData = data.Start();
+        size_t packetSize          = data.Size();
+
+        for (size_t i = 0; i + 7 < packetSize; i++)
+        {
+            if (memcmp(&packetData[i], "_matter", 7) == 0 || (i + 5 < packetSize && memcmp(&packetData[i], "_chip", 5) == 0))
+            {
+                isMatterResponse = true;
+                break;
+            }
+        }
+
+        // Only process Matter-related responses - ignore all other mDNS traffic
+        if (isMatterResponse)
+        {
+            char addrStr[INET6_ADDRSTRLEN];
+            info->SrcAddress.ToString(addrStr, sizeof(addrStr));
+            ChipLogProgress(Discovery, "[MINIMAL_MDNS_TIMING] MATTER_RESPONSE_RECV: size=%d, interface=%d, from=%s:%u, time=%lld",
+                            static_cast<int>(data.Size()), info->Interface.GetPlatformInterface(), addrStr, info->SrcPort,
+                            static_cast<long long>(receiveTime));
+            // If packet is from the target IP, write CSV entry
+            if (strncmp(addrStr, "fe80::9e6b:ff:fe2d:feb4", 23) == 0 || strncmp(addrStr, "192.168.1.55", 13) == 0)
+            {
+                WriteMdnsCsvEntry("RECVResponse", receiveTime, static_cast<int>(data.Size()),
+                                  info->Interface.GetPlatformInterface(), addrStr, info->SrcPort);
+            }
+            srv->mDelegate->OnResponse(data, info);
+        }
     }
 }
 

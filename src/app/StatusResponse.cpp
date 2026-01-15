@@ -22,6 +22,7 @@
 
 namespace chip {
 namespace app {
+
 CHIP_ERROR StatusResponse::Send(Protocols::InteractionModel::Status aStatus, Messaging::ExchangeContext * apExchangeContext,
                                 bool aExpectResponse)
 {
@@ -38,6 +39,7 @@ CHIP_ERROR StatusResponse::Send(Protocols::InteractionModel::Status aStatus, Mes
     ReturnErrorOnFailure(response.GetError());
     ReturnErrorOnFailure(writer.Finalize(&msgBuf));
     apExchangeContext->UseSuggestedResponseTimeout(app::kExpectedIMProcessingTime);
+
     ReturnErrorOnFailure(apExchangeContext->SendMessage(Protocols::InteractionModel::MsgType::StatusResponse, std::move(msgBuf),
                                                         aExpectResponse ? Messaging::SendMessageFlags::kExpectResponse
                                                                         : Messaging::SendMessageFlags::kNone));
