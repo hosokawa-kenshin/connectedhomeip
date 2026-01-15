@@ -22,7 +22,6 @@
 
 #include <algorithm>
 #include <iomanip>
-#include <sstream>
 #include <string>
 
 #include <lib/support/Base64.h>
@@ -328,7 +327,10 @@ CHIP_ERROR Commands::RunCommand(int argc, char ** argv, bool interactive,
 
 #endif // CONFIG_USE_LOCAL_STORAGE
 
-    return command->Run();
+    // Run the command
+    CHIP_ERROR commandResult = command->Run();
+
+    return commandResult;
 }
 
 Commands::CommandSetMap::iterator Commands::GetCommandSet(std::string commandSetName)

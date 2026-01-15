@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <chrono>
+
 #ifdef CONFIG_USE_LOCAL_STORAGE
 #include <controller/ExamplePersistentStorage.h>
 #endif // CONFIG_USE_LOCAL_STORAGE
@@ -74,12 +76,23 @@ public:
     void StoreICDEntryWithKey(chip::app::ICDClientInfo & clientinfo, chip::ByteSpan key);
     void Shutdown() override;
 
+    void LogDetailedTiming();
+
 protected:
     bool IsPeerLIT();
 
     chip::NodeId GetDestinationId() const { return mDestinationId; }
 
     chip::Optional<uint16_t> mTimeout;
+
+    // Timing measurement variables
+    std::chrono::high_resolution_clock::time_point mCommandStartTime;
+    std::chrono::high_resolution_clock::time_point mGetConnectedDeviceCallTime;
+    std::chrono::high_resolution_clock::time_point mMdnsDiscoveryTime;
+    std::chrono::high_resolution_clock::time_point mDeviceConnectedTime;
+    std::chrono::high_resolution_clock::time_point mSendCommandCallTime;
+    std::chrono::high_resolution_clock::time_point mResponseReceivedTime;
+    std::chrono::high_resolution_clock::time_point mCommandCompleteTime;
 
 private:
     chip::NodeId mDestinationId;

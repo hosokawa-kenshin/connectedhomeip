@@ -109,6 +109,12 @@ public:
     virtual void OnResponse(chip::app::CommandSender * client, const chip::app::ConcreteCommandPath & path,
                             const chip::app::StatusIB & status, chip::TLV::TLVReader * data) override
     {
+        // Record response received time (first response)
+        if (mResponseReceivedTime.time_since_epoch().count() == 0)
+        {
+            mResponseReceivedTime = std::chrono::high_resolution_clock::now();
+        }
+
         CHIP_ERROR error = status.ToChipError();
         if (CHIP_NO_ERROR != error)
         {
@@ -176,6 +182,9 @@ public:
 
     virtual void OnDone(chip::app::CommandSender * client) override
     {
+        // Record command complete time
+        mCommandCompleteTime = std::chrono::high_resolution_clock::now();
+
         if (mCommandSender.size())
         {
             mCommandSender.front().reset();
