@@ -61,7 +61,8 @@ namespace app {
 class AutoReleaseSubscriptionInfoIterator
 {
 public:
-    AutoReleaseSubscriptionInfoIterator(SubscriptionResumptionStorage::SubscriptionInfoIterator * iterator) : mIterator(iterator){};
+    AutoReleaseSubscriptionInfoIterator(SubscriptionResumptionStorage::SubscriptionInfoIterator * iterator) :
+        mIterator(iterator) {};
     ~AutoReleaseSubscriptionInfoIterator() { mIterator->Release(); }
 
     SubscriptionResumptionStorage::SubscriptionInfoIterator * operator->() const { return mIterator; }
@@ -444,13 +445,24 @@ Status InteractionModelEngine::OnInvokeCommandRequest(Messaging::ExchangeContext
                                                       const PayloadHeader & aPayloadHeader, System::PacketBufferHandle && aPayload,
                                                       bool aIsTimedInvoke)
 {
+    // Log pool usage BEFORE allocation
+    size_t poolUsedBefore = mCommandResponderObjs.Allocated();
+    ChipLogProgress(InteractionModel, "📥 OnInvokeCommandRequest: CommandHandler pool BEFORE: %u/%u",
+                    static_cast<unsigned>(poolUsedBefore), static_cast<unsigned>(CHIP_IM_MAX_NUM_COMMAND_HANDLER));
+
     // TODO(#30453): Refactor CommandResponseSender's constructor to accept an exchange context parameter.
     CommandResponseSender * commandResponder = mCommandResponderObjs.CreateObject(this, this);
     if (commandResponder == nullptr)
     {
-        ChipLogProgress(InteractionModel, "no resource for Invoke interaction");
+        ChipLogProgress(InteractionModel, "❌ no resource for Invoke interaction (pool exhausted - BUSY!)");
         return Status::Busy;
     }
+
+    // Log pool usage AFTER allocation
+    size_t poolUsedAfter = mCommandResponderObjs.Allocated();
+    ChipLogProgress(InteractionModel, "✅ CommandHandler allocated: pool AFTER: %u/%u", static_cast<unsigned>(poolUsedAfter),
+                    static_cast<unsigned>(CHIP_IM_MAX_NUM_COMMAND_HANDLER));
+
     CHIP_FAULT_INJECT(FaultInjection::kFault_IMInvoke_SeparateResponses,
                       commandResponder->TestOnlyInvokeCommandRequestWithFaultsInjected(
                           apExchangeContext, std::move(aPayload), aIsTimedInvoke,

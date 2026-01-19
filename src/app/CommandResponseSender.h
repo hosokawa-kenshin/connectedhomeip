@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include <app/CommandHandlerExchangeInterface.h>
 #include <app/CommandHandlerImpl.h>
 #include <app/StatusResponse.h>
@@ -190,6 +192,9 @@ private:
     State mState = State::ReadyForInvokeResponses;
 
     bool mReportResponseDropped = false;
+    // Timestamp (ms since epoch) when the InvokeRequest was received for this exchange.
+    // Used to record per-command service timing (receive -> response send / ACK receive).
+    int64_t mInvokeReceivedTimeMs = 0;
 };
 
 } // namespace app

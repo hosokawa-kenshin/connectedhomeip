@@ -104,6 +104,10 @@ void ExchangeManager::Shutdown()
 
 ExchangeContext * ExchangeManager::NewContext(const SessionHandle & session, ExchangeDelegate * delegate, bool isInitiator)
 {
+    // Log ExchangeContext pool usage BEFORE allocation
+    size_t poolUsedBefore = mContextPool.Allocated();
+    size_t poolCapacity   = mContextPool.Capacity();
+
     if (!session->IsActiveSession())
     {
 #if CHIP_ERROR_LOGGING
@@ -115,7 +119,24 @@ ExchangeContext * ExchangeManager::NewContext(const SessionHandle & session, Exc
         // Disallow creating exchange on an inactive session
         return nullptr;
     }
-    return mContextPool.CreateObject(this, mNextExchangeId++, session, isInitiator, delegate);
+
+    ExchangeContext * ec = mContextPool.CreateObject(this, mNextExchangeId++, session, isInitiator, delegate);
+
+    if (ec == nullptr)
+    {
+        ChipLogError(ExchangeManager, "ERROR: ExchangeContext pool EXHAUSTED! %u/%u (K=%u)", static_cast<unsigned>(poolUsedBefore),
+                     static_cast<unsigned>(poolCapacity), static_cast<unsigned>(poolCapacity));
+    }
+    else
+    {
+        size_t poolUsedAfter = mContextPool.Allocated();
+        // Always log to ensure visibility
+        ChipLogError(ExchangeManager, "INFO: ExchangeContext allocated: %u/%u (%.1f percent)", static_cast<unsigned>(poolUsedAfter),
+                     static_cast<unsigned>(poolCapacity),
+                     (static_cast<double>(poolUsedAfter) * 100.0 / static_cast<double>(poolCapacity)));
+    }
+
+    return ec;
 }
 
 CHIP_ERROR ExchangeManager::RegisterUnsolicitedMessageHandlerForProtocol(Protocols::Id protocolId,
@@ -353,10 +374,15 @@ void ExchangeManager::OnMessageReceived(const PacketHeader & packetHeader, const
             return;
         }
 
-        ExchangeContext * ec = mContextPool.CreateObject(this, payloadHeader.GetExchangeID(), session, false, delegate);
+        size_t poolUsedBefore = mContextPool.Allocated();
+        size_t poolCapacity   = mContextPool.Capacity();
+        ExchangeContext * ec  = mContextPool.CreateObject(this, payloadHeader.GetExchangeID(), session, false, delegate);
 
         if (ec == nullptr)
         {
+            ChipLogError(ExchangeManager, "ERROR: ExchangeContext pool EXHAUSTED (unsolicited)! %u/%u (K=%u)",
+                         static_cast<unsigned>(poolUsedBefore), static_cast<unsigned>(poolCapacity),
+                         static_cast<unsigned>(poolCapacity));
             if (delegate != nullptr)
             {
                 matchingUMH->Handler->OnExchangeCreationFailed(delegate);
@@ -366,6 +392,13 @@ void ExchangeManager::OnMessageReceived(const PacketHeader & packetHeader, const
             ChipLogError(ExchangeManager, "OnMessageReceived failed, err = %" CHIP_ERROR_FORMAT, CHIP_ERROR_NO_MEMORY.Format());
             // No resource for creating new exchange, SendStandaloneAckIfNeeded probably also fails, so do not try it here
             return;
+        }
+        else
+        {
+            size_t poolUsedAfter = mContextPool.Allocated();
+            double usagePercent  = 100.0 * static_cast<double>(poolUsedAfter) / static_cast<double>(poolCapacity);
+            ChipLogError(ExchangeManager, "INFO: ExchangeContext allocated (unsolicited): %u/%u (%.1f percent)",
+                         static_cast<unsigned>(poolUsedAfter), static_cast<unsigned>(poolCapacity), usagePercent);
         }
 
         ChipLogDetail(ExchangeManager, "Handling via exchange: " ChipLogFormatExchange ", Delegate: %p", ChipLogValueExchange(ec),
@@ -405,14 +438,26 @@ void ExchangeManager::SendStandaloneAckIfNeeded(const PacketHeader & packetHeade
     // If rcvd msg is from initiator then this exchange is created as not Initiator.
     // If rcvd msg is not from initiator then this exchange is created as Initiator.
     // Create a EphemeralExchange to generate a StandaloneAck
-    ExchangeContext * ec = mContextPool.CreateObject(this, payloadHeader.GetExchangeID(), session, !payloadHeader.IsInitiator(),
-                                                     nullptr, true /* IsEphemeralExchange */);
+    size_t poolUsedBefore = mContextPool.Allocated();
+    size_t poolCapacity   = mContextPool.Capacity();
+    ExchangeContext * ec  = mContextPool.CreateObject(this, payloadHeader.GetExchangeID(), session, !payloadHeader.IsInitiator(),
+                                                      nullptr, true /* IsEphemeralExchange */);
 
     if (ec == nullptr)
     {
+        ChipLogError(ExchangeManager, "ERROR: ExchangeContext pool EXHAUSTED (StandaloneAck)! %u/%u (K=%u)",
+                     static_cast<unsigned>(poolUsedBefore), static_cast<unsigned>(poolCapacity),
+                     static_cast<unsigned>(poolCapacity));
         // Using same error message for all errors to reduce code size.
         ChipLogError(ExchangeManager, "OnMessageReceived failed, err = %" CHIP_ERROR_FORMAT, CHIP_ERROR_NO_MEMORY.Format());
         return;
+    }
+    else
+    {
+        size_t poolUsedAfter = mContextPool.Allocated();
+        double usagePercent  = 100.0 * static_cast<double>(poolUsedAfter) / static_cast<double>(poolCapacity);
+        ChipLogError(ExchangeManager, "INFO: ExchangeContext allocated (StandaloneAck): %u/%u (%.1f percent)",
+                     static_cast<unsigned>(poolUsedAfter), static_cast<unsigned>(poolCapacity), usagePercent);
     }
 
     ChipLogDetail(ExchangeManager, "Generating StandaloneAck via exchange: " ChipLogFormatExchange, ChipLogValueExchange(ec));

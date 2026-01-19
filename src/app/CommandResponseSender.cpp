@@ -25,6 +25,157 @@
 #include <mutex>
 #include <vector>
 
+// Helper for command service timing CSV
+static void WriteCommandServiceResponseTimingToCsv(int64_t receiveTimeMs, int64_t responseSentTimeMs)
+{
+    const char * csvPath = "./command_server_timing.csv";
+
+    static std::mutex sCmdSvcMutex;
+    std::lock_guard<std::mutex> lock(sCmdSvcMutex);
+
+    std::vector<std::string> lines;
+    std::ifstream inFile(csvPath);
+    if (inFile.is_open())
+    {
+        std::string line;
+        while (std::getline(inFile, line))
+        {
+            lines.push_back(line);
+        }
+        inFile.close();
+    }
+
+    if (lines.empty())
+    {
+        lines.push_back("Receive_ms,ResponseSent_ms,ACK_Recv_ms,LatencyResponse_ms,LatencyAck_ms");
+    }
+
+    // Append or update last data line: if last line already has ResponseSent_ms==0, update it.
+    if (lines.size() > 1)
+    {
+        std::string & lastLine = lines.back();
+        size_t commaCount      = std::count(lastLine.begin(), lastLine.end(), ',');
+        // If last line only has Receive field (unlikely), pad. We expect 4 commas in full row.
+        if (commaCount < 4)
+        {
+            // Replace last line with new complete entry
+            lastLine = std::to_string(receiveTimeMs) + "," + std::to_string(responseSentTimeMs) + ",0," +
+                std::to_string(responseSentTimeMs - receiveTimeMs) + ",0";
+        }
+        else
+        {
+            // If last line already contains timestamps, append a new line for this event
+            lines.push_back(std::to_string(receiveTimeMs) + "," + std::to_string(responseSentTimeMs) + ",0," +
+                            std::to_string(responseSentTimeMs - receiveTimeMs) + ",0");
+        }
+    }
+    else
+    {
+        // Only header exists
+        lines.push_back(std::to_string(receiveTimeMs) + "," + std::to_string(responseSentTimeMs) + ",0," +
+                        std::to_string(responseSentTimeMs - receiveTimeMs) + ",0");
+    }
+
+    std::ofstream outFile(csvPath);
+    if (outFile.is_open())
+    {
+        for (const auto & l : lines)
+        {
+            outFile << l << std::endl;
+        }
+        outFile.close();
+    }
+}
+
+static void UpdateCommandServiceAckTimingToCsv(int64_t receiveTimeMs, int64_t ackTimeMs)
+{
+    const char * csvPath = "./command_server_timing.csv";
+
+    static std::mutex sCmdSvcMutex;
+    std::lock_guard<std::mutex> lock(sCmdSvcMutex);
+
+    std::vector<std::string> lines;
+    std::ifstream inFile(csvPath);
+    if (inFile.is_open())
+    {
+        std::string line;
+        while (std::getline(inFile, line))
+        {
+            lines.push_back(line);
+        }
+        inFile.close();
+    }
+
+    if (lines.size() <= 1)
+    {
+        // No data lines yet: create header + single entry with ACK
+        lines.clear();
+        lines.push_back("Receive_ms,ResponseSent_ms,ACK_Recv_ms,LatencyResponse_ms,LatencyAck_ms");
+        lines.push_back(std::to_string(receiveTimeMs) + ",0," + std::to_string(ackTimeMs) + ",0," +
+                        std::to_string(ackTimeMs - receiveTimeMs));
+    }
+    else
+    {
+        // Update the last data line by filling ACK_Recv_ms if it's zero
+        std::string & lastLine = lines.back();
+        // Split by commas
+        std::vector<std::string> parts;
+        {
+            std::string tmp = lastLine;
+            while (true)
+            {
+                size_t comma = tmp.find(',');
+                if (comma == std::string::npos)
+                {
+                    parts.push_back(tmp);
+                    break;
+                }
+                parts.push_back(tmp.substr(0, comma));
+                tmp = tmp.substr(comma + 1);
+            }
+        }
+
+        if (parts.size() < 5)
+        {
+            // Pad to 5 parts
+            while (parts.size() < 5)
+                parts.push_back("0");
+        }
+
+        // If ACK_Recv_ms is zero, set it and set LatencyAck
+        if (parts[2] == "0")
+        {
+            parts[2] = std::to_string(ackTimeMs);
+            parts[4] = std::to_string(ackTimeMs - receiveTimeMs);
+            // Rebuild line
+            std::string rebuilt;
+            for (size_t i = 0; i < parts.size(); ++i)
+            {
+                if (i)
+                    rebuilt += ",";
+                rebuilt += parts[i];
+            }
+            lastLine = rebuilt;
+        }
+        else
+        {
+            // Append a new line with the ACK info
+            lines.push_back(std::to_string(receiveTimeMs) + ",0," + std::to_string(ackTimeMs) + ",0," +
+                            std::to_string(ackTimeMs - receiveTimeMs));
+        }
+    }
+
+    std::ofstream outFile(csvPath);
+    if (outFile.is_open())
+    {
+        for (const auto & l : lines)
+        {
+            outFile << l << std::endl;
+        }
+        outFile.close();
+    }
+}
+
 namespace chip {
 namespace app {
 using Status = Protocols::InteractionModel::Status;
@@ -206,6 +357,8 @@ CHIP_ERROR CommandResponseSender::OnMessageReceived(Messaging::ExchangeContext *
         auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
         ChipLogProgress(DataManagement, "ACK received, recording timing: %lld ms", static_cast<long long>(nowMs));
         WriteAckReceivedTimingToCsv(nowMs);
+        // Also update command service CSV if we have the receive timestamp
+        UpdateCommandServiceAckTimingToCsv(mInvokeReceivedTimeMs, nowMs);
 
         CHIP_ERROR statusError = CHIP_NO_ERROR;
         err                    = StatusResponse::ProcessStatusResponse(std::move(aPayload), statusError);
@@ -342,6 +495,9 @@ CHIP_ERROR CommandResponseSender::SendCommandResponse()
     auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     WriteCommandResponseSentTimingToCsv(nowMs);
 
+    // Also write per-command service timing (receive -> response send)
+    WriteCommandServiceResponseTimingToCsv(mInvokeReceivedTimeMs, nowMs);
+
     return CHIP_NO_ERROR;
 }
 
@@ -385,6 +541,8 @@ void CommandResponseSender::Close()
         auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
         ChipLogProgress(DataManagement, "ACK received (Close), recording timing: %lld ms", static_cast<long long>(nowMs));
         WriteAckReceivedTimingToCsv(nowMs);
+        // Also update per-command service timing CSV
+        UpdateCommandServiceAckTimingToCsv(mInvokeReceivedTimeMs, nowMs);
     }
 
     MoveToState(State::AllInvokeResponsesSent);
@@ -401,6 +559,13 @@ void CommandResponseSender::OnInvokeCommandRequest(Messaging::ExchangeContext * 
     // Exchange Manager for unsolicited InvokeRequestMessages.
     mExchangeCtx.Grab(ec);
     mExchangeCtx->WillSendMessage();
+
+    // Record receive timestamp for per-command timing
+    {
+        auto now              = std::chrono::system_clock::now();
+        mInvokeReceivedTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        ChipLogDetail(DataManagement, "Invoke request received, ts=%lld ms", static_cast<long long>(mInvokeReceivedTimeMs));
+    }
 
     // Grabbing Handle to prevent mCommandHandler from calling OnDone before OnInvokeCommandRequest returns.
     // This allows us to send a StatusResponse error instead of any potentially queued up InvokeResponseMessages.
